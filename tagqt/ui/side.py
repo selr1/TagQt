@@ -91,13 +91,11 @@ class Sidebar(QWidget):
         
         self.year_edit = QLineEdit()
         self.genre_edit = QLineEdit()
-        form_layout.addRow("Year:", self.year_edit)
-        form_layout.addRow("Genre:", self.genre_edit)
         
         layout.addLayout(form_layout)
         
         # Collapsible Extended Metadata
-        self.toggle_btn = QPushButton("Show More Fields")
+        self.toggle_btn = QPushButton("Show more fields ▸")
         self.toggle_btn.setCheckable(True)
         self.toggle_btn.setStyleSheet(f"background-color: {Theme.SURFACE0}; color: {Theme.SUBTEXT0}; text-align: left; padding: 8px;")
         self.toggle_btn.setToolTip("Show or hide extra metadata fields")
@@ -118,6 +116,11 @@ class Sidebar(QWidget):
         self.publisher_edit = QLineEdit()
         self.comment_edit = QLineEdit()
         
+        self.year_label = QLabel("Year:")
+        extended_layout.addRow(self.year_label, self.year_edit)
+        self.genre_label = QLabel("Genre:")
+        extended_layout.addRow(self.genre_label, self.genre_edit)
+
         self.disc_label = QLabel("Disc:")
         extended_layout.addRow(self.disc_label, self.disc_edit)
         self.track_label = QLabel("Track:")
@@ -132,6 +135,11 @@ class Sidebar(QWidget):
         extended_layout.addRow("Comment:", self.comment_edit)
         
         layout.addWidget(self.extended_widget)
+
+        # Explicit tab order: main fields → extended fields
+        QWidget.setTabOrder(self.album_artist_edit, self.year_edit)
+        QWidget.setTabOrder(self.year_edit, self.genre_edit)
+        QWidget.setTabOrder(self.genre_edit, self.disc_edit)
         
         # Lyrics Editor
         self.lyrics_label = QLabel("Lyrics")
@@ -266,7 +274,7 @@ class Sidebar(QWidget):
     def toggle_extended(self, checked):
         """Show or hide extended metadata fields."""
         self.extended_widget.setVisible(checked)
-        self.toggle_btn.setText("Show fewer fields" if checked else "Show more fields")
+        self.toggle_btn.setText("Hide fields ▲" if checked else "Show more fields ▸")
 
     def apply_theme(self):
         bg = Theme.LATTE_SURFACE1 if Theme._is_light else Theme.SURFACE0

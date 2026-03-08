@@ -2,6 +2,6 @@ tests/
 venv/
 .pytest_cache/
 __pycache__/
-tagqt/__pycache__/
+tagqt/__pycache__/s
 tagqt/core/__pycache__/
 .github/skills/
