@@ -173,6 +173,24 @@ jobs:
             main.py
         shell: cmd
 
+      - name: Diagnose dist structure
+        run: |
+          Write-Host "=== dist/TagQt top level ==="
+          Get-ChildItem "dist\TagQt" | Select-Object Name
+          Write-Host "=== PySide6 contents ==="
+          Get-ChildItem "dist\TagQt\PySide6" | Select-Object Name
+          Write-Host "=== Checking for Qt subdir ==="
+          if (Test-Path "dist\TagQt\PySide6\Qt") {
+            Get-ChildItem "dist\TagQt\PySide6\Qt" | Select-Object Name
+          } else {
+            Write-Host "No Qt subdir found - checking for translations directly"
+            Get-ChildItem "dist\TagQt\PySide6" -Recurse -Filter "translations" -ErrorAction SilentlyContinue | Select-Object FullName
+          }
+          Write-Host "=== Total dist size ==="
+          $size = (Get-ChildItem "dist\TagQt" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host "Total: $([math]::Round($size, 1)) MB"
+        shell: pwsh
+
       - name: Clean bloat from dist
         run: |
           $dist = "dist\TagQt"
@@ -405,6 +423,22 @@ jobs:
             --collect-data certifi \
             --strip \
             main.py
+
+      - name: Diagnose dist structure
+        run: |
+          echo "=== dist/TagQt top level ==="
+          ls dist/TagQt/
+          echo "=== PySide6 contents ==="
+          ls dist/TagQt/PySide6/
+          echo "=== Checking for Qt subdir ==="
+          if [ -d "dist/TagQt/PySide6/Qt" ]; then
+            ls dist/TagQt/PySide6/Qt/
+          else
+            echo "No Qt subdir — searching for translations directly"
+            find dist/TagQt/PySide6 -name "translations" -type d 2>/dev/null
+          fi
+          echo "=== Total dist size ==="
+          du -sh dist/TagQt/
 
       - name: Clean bloat from dist
         run: |
