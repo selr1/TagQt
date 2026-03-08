@@ -321,8 +321,7 @@ jobs:
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad \
             gstreamer1.0-plugins-ugly \
-            gstreamer1.0-libav \
-            libgstreamer-plugins-base1.0-dev
+            gstreamer1.0-libav
 
       - name: Install Python dependencies
         run: |
@@ -436,6 +435,12 @@ jobs:
       - name: Clean bloat from dist
         run: |
           dist="dist/TagQt/_internal"
+          echo "=== Multimedia plugins ==="
+          ls "$dist/PySide6/Qt/plugins/multimedia/" 2>/dev/null \
+            || echo "MISSING: no multimedia plugins dir"
+          echo "=== All plugin dirs ==="
+          ls "$dist/PySide6/Qt/plugins/" 2>/dev/null \
+            || echo "MISSING: no plugins dir"
           echo "PySide6 structure:"
           ls "$dist/PySide6/" 2>/dev/null || echo "PySide6 dir not found at $dist/PySide6"
           ls "$dist/PySide6/Qt/" 2>/dev/null || echo "No Qt subdir found"
@@ -451,65 +456,6 @@ jobs:
           done
           echo "Final dist size: $(du -sh dist/TagQt | cut -f1)"
         shell: bash
-
-      - name: Bundle GStreamer for AppImage
-        run: |
-          dist="dist/TagQt/_internal"
-
-          # Find and copy GStreamer core libraries
-          mkdir -p "$dist/gstreamer-libs"
-          for lib in \
-            libgstreamer-1.0.so.0 \
-            libgstbase-1.0.so.0 \
-            libgstapp-1.0.so.0 \
-            libgstaudio-1.0.so.0 \
-            libgstvideo-1.0.so.0 \
-            libgstpbutils-1.0.so.0 \
-            libgsttag-1.0.so.0; do
-            found=$(ldconfig -p | grep "$lib" | awk '{print $NF}' | head -1)
-            if [ -n "$found" ]; then
-              cp "$found" "$dist/gstreamer-libs/"
-              echo "Bundled: $lib"
-            else
-              echo "WARNING: $lib not found"
-            fi
-          done
-
-          # Find and copy GStreamer plugin directory
-          GST_PLUGIN_PATH=$(pkg-config --variable=pluginsdir gstreamer-1.0 2>/dev/null || echo "/usr/lib/x86_64-linux-gnu/gstreamer-1.0")
-          if [ -d "$GST_PLUGIN_PATH" ]; then
-            mkdir -p "$dist/gstreamer-1.0"
-            # Copy only the plugins needed for audio playback
-            for plugin in \
-              libgstcoreelements.so \
-              libgstapp.so \
-              libgstaudiosink.so \
-              libgstaudiosrc.so \
-              libgstplayback.so \
-              libgsttypefindfunctions.so \
-              libgstid3demux.so \
-              libgstflac.so \
-              libgstogg.so \
-              libgstvorbis.so \
-              libgstmpg123.so \
-              libgstopusparse.so \
-              libgstalsa.so \
-              libgstpulseaudio.so \
-              libgstaudioconvert.so \
-              libgstaudioresample.so \
-              libgstvolume.so \
-              libgstautodetect.so; do
-              if [ -f "$GST_PLUGIN_PATH/$plugin" ]; then
-                cp "$GST_PLUGIN_PATH/$plugin" "$dist/gstreamer-1.0/"
-                echo "Bundled plugin: $plugin"
-              fi
-            done
-            echo "GStreamer plugin dir used: $GST_PLUGIN_PATH"
-          else
-            echo "WARNING: GStreamer plugin dir not found at $GST_PLUGIN_PATH"
-          fi
-        shell: bash
-
       - name: Create AppDir structure
         run: |
           mkdir -p TagQt.AppDir/usr/bin
@@ -548,13 +494,11 @@ jobs:
           #!/bin/bash
           SELF=$(readlink -f "$0")
           HERE=${SELF%/*}
-          INTERNAL="${HERE}/usr/bin/_internal"
-
           export PATH="${HERE}/usr/bin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/bin:${INTERNAL}/gstreamer-libs:${LD_LIBRARY_PATH}"
-          export GST_PLUGIN_PATH="${INTERNAL}/gstreamer-1.0"
-          export GST_PLUGIN_SYSTEM_PATH="${INTERNAL}/gstreamer-1.0"
-          export GIO_MODULE_DIR="${INTERNAL}/gstreamer-libs"
+          export LD_LIBRARY_PATH="${HERE}/usr/bin:${HERE}/usr/bin/_internal:${LD_LIBRARY_PATH}"
+
+          # Tell Qt6 to use its bundled FFmpeg multimedia backend
+          export QT_MEDIA_BACKEND=ffmpeg
 
           exec "${HERE}/usr/bin/TagQt" "$@"
           APPRUN
