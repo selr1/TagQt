@@ -173,7 +173,7 @@ jobs:
             main.py
         shell: cmd
 
-      - name: Clean bloat from dist
+      - name: Clean bloat from distt
         run: |
           $dist = "dist\TagQt\_internal"
           Write-Host "PySide6 structure:"
