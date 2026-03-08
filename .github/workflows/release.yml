@@ -494,10 +494,15 @@ jobs:
           #!/bin/bash
           SELF=$(readlink -f "$0")
           HERE=${SELF%/*}
-          export PATH="${HERE}/usr/bin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/bin:${HERE}/usr/bin/_internal:${LD_LIBRARY_PATH}"
+          INTERNAL="${HERE}/usr/bin/_internal"
 
-          # Tell Qt6 to use its bundled FFmpeg multimedia backend
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/bin:${INTERNAL}:${LD_LIBRARY_PATH}"
+
+          # Point Qt to its own bundled plugins inside the AppImage
+          export QT_PLUGIN_PATH="${INTERNAL}/PySide6/Qt/plugins"
+
+          # Force Qt6 Multimedia to use the bundled FFmpeg backend
           export QT_MEDIA_BACKEND=ffmpeg
 
           exec "${HERE}/usr/bin/TagQt" "$@"
