@@ -115,6 +115,48 @@ jobs:
             --hidden-import PySide6.QtSvg ^
             --hidden-import PySide6.QtMultimedia ^
             --collect-data PySide6 ^
+            --exclude-module PySide6.QtWebEngineCore ^
+            --exclude-module PySide6.QtWebEngineWidgets ^
+            --exclude-module PySide6.QtWebChannel ^
+            --exclude-module PySide6.Qt3DCore ^
+            --exclude-module PySide6.Qt3DRender ^
+            --exclude-module PySide6.Qt3DExtras ^
+            --exclude-module PySide6.Qt3DInput ^
+            --exclude-module PySide6.Qt3DLogic ^
+            --exclude-module PySide6.Qt3DAnimation ^
+            --exclude-module PySide6.QtQuick ^
+            --exclude-module PySide6.QtQuick3D ^
+            --exclude-module PySide6.QtQml ^
+            --exclude-module PySide6.QtCharts ^
+            --exclude-module PySide6.QtDataVisualization ^
+            --exclude-module PySide6.QtGraphs ^
+            --exclude-module PySide6.QtDesigner ^
+            --exclude-module PySide6.QtBluetooth ^
+            --exclude-module PySide6.QtPdf ^
+            --exclude-module PySide6.QtPdfWidgets ^
+            --exclude-module PySide6.QtLocation ^
+            --exclude-module PySide6.QtPositioning ^
+            --exclude-module PySide6.QtSensors ^
+            --exclude-module PySide6.QtSerialBus ^
+            --exclude-module PySide6.QtSerialPort ^
+            --exclude-module PySide6.QtRemoteObjects ^
+            --exclude-module PySide6.QtDBus ^
+            --exclude-module PySide6.QtHelp ^
+            --exclude-module PySide6.QtSql ^
+            --exclude-module PySide6.QtShaderTools ^
+            --exclude-module PySide6.QtTest ^
+            --exclude-module PySide6.QtTextToSpeech ^
+            --exclude-module PySide6.QtHttpServer ^
+            --exclude-module PySide6.QtScxml ^
+            --exclude-module tkinter ^
+            --exclude-module unittest ^
+            --exclude-module pydoc ^
+            --exclude-module doctest ^
+            --exclude-module idlelib ^
+            --exclude-module turtle ^
+            --exclude-module curses ^
+            --exclude-module test ^
+            --exclude-module lib2to3 ^
             --hidden-import tagqt.core.musicbrainz ^
             --hidden-import tagqt.core.lyric ^
             --hidden-import tagqt.core.art ^
@@ -130,6 +172,20 @@ jobs:
             --collect-data koroman ^
             main.py
         shell: cmd
+
+      - name: Clean bloat from dist
+        run: |
+          $dist = "dist\TagQt"
+          Remove-Item "$dist\PySide6\Qt\translations" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item "$dist\PySide6\Qt\resources" -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem "$dist" -Recurse -Filter "*.pyi" | Remove-Item -Force
+          $unused = @("qmllint","qmltooling","designer","assetimporters","sceneparsers","renderers","sqldrivers","canbus","geoservices","geometryloaders","position","sensors","texttospeech","webview","scxmldatamodel","renderplugins")
+          foreach ($dir in $unused) {
+            Remove-Item "$dist\PySide6\Qt\plugins\$dir" -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          $size = [math]::Round((Get-ChildItem $dist -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB, 1)
+          Write-Output "Cleaned dist size: $size MB"
+        shell: pwsh
 
       - name: Install Inno Setup
         run: |
@@ -292,6 +348,48 @@ jobs:
             --hidden-import PySide6.QtSvg \
             --hidden-import PySide6.QtMultimedia \
             --collect-data PySide6 \
+            --exclude-module PySide6.QtWebEngineCore \
+            --exclude-module PySide6.QtWebEngineWidgets \
+            --exclude-module PySide6.QtWebChannel \
+            --exclude-module PySide6.Qt3DCore \
+            --exclude-module PySide6.Qt3DRender \
+            --exclude-module PySide6.Qt3DExtras \
+            --exclude-module PySide6.Qt3DInput \
+            --exclude-module PySide6.Qt3DLogic \
+            --exclude-module PySide6.Qt3DAnimation \
+            --exclude-module PySide6.QtQuick \
+            --exclude-module PySide6.QtQuick3D \
+            --exclude-module PySide6.QtQml \
+            --exclude-module PySide6.QtCharts \
+            --exclude-module PySide6.QtDataVisualization \
+            --exclude-module PySide6.QtGraphs \
+            --exclude-module PySide6.QtDesigner \
+            --exclude-module PySide6.QtBluetooth \
+            --exclude-module PySide6.QtPdf \
+            --exclude-module PySide6.QtPdfWidgets \
+            --exclude-module PySide6.QtLocation \
+            --exclude-module PySide6.QtPositioning \
+            --exclude-module PySide6.QtSensors \
+            --exclude-module PySide6.QtSerialBus \
+            --exclude-module PySide6.QtSerialPort \
+            --exclude-module PySide6.QtRemoteObjects \
+            --exclude-module PySide6.QtDBus \
+            --exclude-module PySide6.QtHelp \
+            --exclude-module PySide6.QtSql \
+            --exclude-module PySide6.QtShaderTools \
+            --exclude-module PySide6.QtTest \
+            --exclude-module PySide6.QtTextToSpeech \
+            --exclude-module PySide6.QtHttpServer \
+            --exclude-module PySide6.QtScxml \
+            --exclude-module tkinter \
+            --exclude-module unittest \
+            --exclude-module pydoc \
+            --exclude-module doctest \
+            --exclude-module idlelib \
+            --exclude-module turtle \
+            --exclude-module curses \
+            --exclude-module test \
+            --exclude-module lib2to3 \
             --hidden-import tagqt.core.musicbrainz \
             --hidden-import tagqt.core.lyric \
             --hidden-import tagqt.core.art \
@@ -307,6 +405,17 @@ jobs:
             --collect-data certifi \
             --strip \
             main.py
+
+      - name: Clean bloat from dist
+        run: |
+          dist="dist/TagQt"
+          rm -rf "$dist/PySide6/Qt/translations"
+          rm -rf "$dist/PySide6/Qt/resources"
+          find "$dist" -name "*.pyi" -delete
+          for dir in qmllint qmltooling designer assetimporters sceneparsers renderers sqldrivers canbus geoservices geometryloaders position sensors texttospeech webview scxmldatamodel renderplugins; do
+            rm -rf "$dist/PySide6/Qt/plugins/$dir"
+          done
+          echo "Cleaned dist size: $(du -sh $dist | cut -f1)"
 
       - name: Create AppDir structure
         run: |
@@ -387,7 +496,7 @@ jobs:
 
       - name: Build AppImage
         run: |
-          ARCH=x86_64 ./appimagetool TagQt.AppDir "TagQt-linux-${{ steps.version.outputs.TAG }}.AppImage"
+          ARCH=x86_64 ./appimagetool --comp zstd TagQt.AppDir "TagQt-linux-${{ steps.version.outputs.TAG }}.AppImage"
           chmod +x "TagQt-linux-${{ steps.version.outputs.TAG }}.AppImage"
 
       - name: Upload artifact
