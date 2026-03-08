@@ -7,6 +7,7 @@ musicbrainzngs.set_useragent("TagQt", "1.0", "https://github.com/example/tagqt")
 musicbrainzngs.set_rate_limit(limit_or_interval=1.0, new_requests=1)
 
 class MusicBrainzClient:
+    """Queries MusicBrainz for release, artist, and genre metadata."""
     @staticmethod
     def normalize_title(title):
         if not title:

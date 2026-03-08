@@ -1,3 +1,5 @@
+"""CSV import/export utilities for audio file metadata."""
+
 import csv
 import os
 

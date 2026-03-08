@@ -1,6 +1,8 @@
 import requests
 
+
 class LyricsFetcher:
+    """Searches for synced and plain lyrics from lrclib.net."""
     BASE_URL = "https://lrclib.net/api/search"
 
     def search_lyrics(self, artist, title, album=None):

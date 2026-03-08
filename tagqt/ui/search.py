@@ -22,7 +22,7 @@ class ImageLoaderWorker(QObject):
             response = requests.get(self.url, timeout=10)
             response.raise_for_status()
             self.finished.emit(response.content)
-        except:
+        except Exception:
             self.finished.emit(b"")
 
 
@@ -97,7 +97,7 @@ class UnifiedSearchDialog(QDialog):
                     border-radius: {Theme.CORNER_RADIUS};
                 }}
             """)
-            self.preview_image.setText("Select a cover")
+            self.preview_image.setText("Pick a cover to preview it")
             preview_container.addWidget(self.preview_image)
             preview_container.addStretch()
             
@@ -133,20 +133,20 @@ class UnifiedSearchDialog(QDialog):
         album = self.album_edit.text()
         
         if not artist:
-            dialogs.show_warning(self, "Missing Info", "Artist is required.")
+            dialogs.show_warning(self, "Missing Info", "An artist name is needed to search.")
             return
             
         if self.mode == "lyrics" and not title:
-            dialogs.show_warning(self, "Missing Info", "Title is required for lyrics.")
+            dialogs.show_warning(self, "Missing Info", "A song title is needed to find lyrics.")
             return
              
         self.tree.clear()
         self.select_btn.setEnabled(False)
         if self.mode == "cover":
             self.preview_image.clear()
-            self.preview_image.setText("Select a cover")
+            self.preview_image.setText("Pick a cover to preview it")
         
-        self.search_btn.setText("Searching...")
+        self.search_btn.setText("Searching…")
         self.search_btn.setEnabled(False)
         self.repaint()
         
@@ -164,7 +164,7 @@ class UnifiedSearchDialog(QDialog):
                 self.populate_results(results)
                 
         except Exception as e:
-            dialogs.show_error(self, "Error", f"Search failed: {e}")
+            dialogs.show_error(self, "Search Failed", f"Couldn't get results. {e}")
         finally:
             self.search_btn.setText("Search")
             self.search_btn.setEnabled(True)
@@ -211,7 +211,11 @@ class UnifiedSearchDialog(QDialog):
                     self.load_preview(url)
 
     def load_preview(self, url):
-        self.preview_image.setText("Loading...")
+        """Load a cover art preview image in a background thread."""
+        self.preview_image.setText("Loading…")
+        
+        # Clean up any existing loader thread
+        self._cleanup_loader()
         
         self._loader_thread = QThread()
         self._loader_worker = ImageLoaderWorker(url)
@@ -219,7 +223,21 @@ class UnifiedSearchDialog(QDialog):
         self._loader_thread.started.connect(self._loader_worker.run)
         self._loader_worker.finished.connect(self.on_preview_loaded)
         self._loader_worker.finished.connect(self._loader_thread.quit)
+        self._loader_worker.finished.connect(self._loader_worker.deleteLater)
+        self._loader_thread.finished.connect(self._loader_thread.deleteLater)
+        self._loader_thread.finished.connect(self._on_loader_finished)
         self._loader_thread.start()
+
+    def _on_loader_finished(self):
+        """Clear references after loader thread finishes."""
+        self._loader_thread = None
+        self._loader_worker = None
+
+    def _cleanup_loader(self):
+        """Safely stop and clean up the preview loader thread."""
+        if self._loader_thread and self._loader_thread.isRunning():
+            self._loader_thread.quit()
+            self._loader_thread.wait(2000)
 
     def on_preview_loaded(self, data):
         if data:
@@ -228,11 +246,17 @@ class UnifiedSearchDialog(QDialog):
             if not pixmap.isNull():
                 self.preview_image.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 return
-        self.preview_image.setText("Failed to load")
+        self.preview_image.setText("Couldn't load preview")
 
     def accept_selection(self):
         item = self.tree.currentItem()
         if item:
             self.selected_result = item.data(0, Qt.UserRole)
             self.accept()
+
+    def closeEvent(self, event):
+        """Clean up preview loader thread on dialog close."""
+        self._cleanup_loader()
+        event.accept()
+        super().closeEvent(event)
 

@@ -2,6 +2,7 @@ from PySide6.QtCore import QSettings
 
 
 class Settings:
+    """Manages persistent application settings using QSettings."""
     
     def __init__(self):
         self.settings = QSettings("TagQt", "TagQt")

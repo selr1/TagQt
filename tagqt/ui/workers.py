@@ -60,7 +60,7 @@ class LyricsWorker(QObject):
                     break
 
                 self.progress.emit(i, len(self.files))
-                self.result.emit(f, "Checking", "Checking if lyrics is synced")
+                self.result.emit(f, "Checking", "Checking for synced lyrics…")
                 
                 try:
                     md = MetadataHandler(f)
@@ -73,9 +73,9 @@ class LyricsWorker(QObject):
                     if existing_lyrics and existing_is_synced:
                         if not os.path.exists(lrc_path):
                             md.save_lyrics_file()
-                            self.result.emit(f, "Skipped", "Synced lyrics exist, created .lrc")
+                            self.result.emit(f, "Skipped", "Already has synced lyrics, saved .lrc")
                         else:
-                            self.result.emit(f, "Skipped", "Synced lyrics and .lrc exist")
+                            self.result.emit(f, "Skipped", "Already has synced lyrics")
                         continue
                         
                     candidates = self.lyrics_fetcher.search_lyrics(md.artist, md.title, md.album)
@@ -89,27 +89,27 @@ class LyricsWorker(QObject):
                         if existing_lyrics:
                             self.result.emit(f, "Updated", "Replaced with synced lyrics")
                         else:
-                            self.result.emit(f, "Found", "Synced lyrics downloaded")
+                            self.result.emit(f, "Found", "Got synced lyrics")
                     elif best and not is_synced:
                         if existing_lyrics:
                             if not os.path.exists(lrc_path):
                                 md.save_lyrics_file()
-                                self.result.emit(f, "Skipped", "No synced available, kept existing, created .lrc")
+                                self.result.emit(f, "Skipped", "No synced version found, kept existing, saved .lrc")
                             else:
-                                self.result.emit(f, "Skipped", "No synced available, kept existing")
+                                self.result.emit(f, "Skipped", "No synced version found, kept existing")
                         else:
                             md.lyrics = best.get("plainLyrics")
                             md.save()
-                            self.result.emit(f, "Found", "Plain lyrics (no synced available)")
+                            self.result.emit(f, "Found", "Got plain lyrics (no synced version)")
                     else:
                         if existing_lyrics:
                             if not os.path.exists(lrc_path):
                                 md.save_lyrics_file()
-                                self.result.emit(f, "Skipped", "No matches, kept existing, created .lrc")
+                                self.result.emit(f, "Skipped", "No results, kept existing, saved .lrc")
                             else:
-                                self.result.emit(f, "Skipped", "No matches found, kept existing")
+                                self.result.emit(f, "Skipped", "No results, kept existing")
                         else:
-                            self.result.emit(f, "Missing", "No matches found")
+                            self.result.emit(f, "Missing", "No results found")
                 except Exception as e:
                     self.log.emit(f"[DEBUG] Error fetching lyrics for {f}: {e}")
                     self.result.emit(f, "Error", str(e))
@@ -196,7 +196,7 @@ class AutoTagWorker(QObject):
                             groups[key] = []
                         groups[key].append(f)
                     elif not artist or not album:
-                        self.result.emit(f, "Skipped", "Needs artist and album tags to lookup")
+                        self.result.emit(f, "Skipped", "Needs artist and album tags")
                         skipped_early += 1
                     elif not needs_tagging:
                         self.result.emit(f, "Skipped", "All tags already present")
@@ -218,7 +218,7 @@ class AutoTagWorker(QObject):
                 
                 if not release:
                     for f in group_files:
-                        self.result.emit(f, "Not Found", f"'{album}' by '{artist}' not in MusicBrainz")
+                        self.result.emit(f, "Not Found", f"'{album}' by '{artist}' not on MusicBrainz")
                         processed_count += 1
                         self.progress.emit(processed_count, total_files)
                     continue
@@ -303,7 +303,7 @@ class AutoTagWorker(QObject):
                             md.save()
                             self.result.emit(f, "Updated", f"Added: {', '.join(changes)}")
                         elif not track_matched:
-                            self.result.emit(f, "Not Matched", "Track not found in release")
+                            self.result.emit(f, "Not Matched", "Couldn't match this track in the release")
                         else:
                             self.result.emit(f, "Skipped", "All tags already present")
                             

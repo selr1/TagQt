@@ -62,8 +62,22 @@ class MainWindow(QMainWindow):
         # Header / Toolbar
         header_layout = QHBoxLayout()
         
-        self.title_label = QLabel("TagQt")
-        self.title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {Theme.ACCENT};")
+        import os
+        from PySide6.QtSvg import QSvgRenderer
+        from PySide6.QtGui import QPixmap, QPainter
+        self.title_label = QLabel()
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets', 'logo.svg')
+        renderer = QSvgRenderer(logo_path)
+        svg_size = renderer.defaultSize()
+        target_h = 32
+        target_w = int(svg_size.width() * target_h / svg_size.height())
+        logo_pixmap = QPixmap(target_w, target_h)
+        logo_pixmap.fill(Qt.transparent)
+        painter = QPainter(logo_pixmap)
+        renderer.render(painter)
+        painter.end()
+        self.title_label.setPixmap(logo_pixmap)
+        self.title_label.setStyleSheet("background: transparent;")
         header_layout.addWidget(self.title_label)
         
         header_layout.addStretch()
@@ -135,39 +149,40 @@ class MainWindow(QMainWindow):
             }}
         """)
         
-        frame_layout = QHBoxLayout(self.progress_frame)
+        frame_layout = QVBoxLayout(self.progress_frame)
         frame_layout.setContentsMargins(0, 0, 0, 0)
-        frame_layout.setSpacing(0)
+        frame_layout.setSpacing(4)
         
-        # Progress Bar
+        # Progress Label (status text shown above bar)
+        self.progress_label = QLabel()
+        self.progress_label.setStyleSheet(f"""
+            QLabel {{
+                color: {Theme.SUBTEXT1};
+                font-size: 12px;
+                font-weight: normal;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        self.progress_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        frame_layout.addWidget(self.progress_label)
+        
+        # Progress Bar (slim, no text inside)
         self.progress_bar = QProgressBar()
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setAlignment(Qt.AlignCenter)
-        self.progress_bar.setFixedHeight(20) # Height for text
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(6)
         self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
                 border: none;
                 background-color: {Theme.SURFACE0};
-                border-radius: 4px;
-                color: {Theme.TEXT}; /* Text color on empty part */
-                font-size: 11px;
-                font-weight: 600;
+                border-radius: 3px;
+                min-height: 6px;
+                max-height: 6px;
             }}
             QProgressBar::chunk {{
                 background-color: {Theme.ACCENT};
-                border-radius: 4px;
-            }}
-        """)
-        # Set selection color (text color on filled part) via palette or stylesheet if supported
-        # Qt stylesheet 'selection-color' works for QProgressBar in some styles, but let's try it.
-        # Also 'color' is usually for the unfilled part.
-        # To ensure contrast on the filled part (Accent), we want CRUST or White.
-        # Theme.CRUST is black-ish, Theme.ACCENT is pink/red. Black on Pink is good.
-        self.progress_bar.setStyleSheet(self.progress_bar.styleSheet() + f"""
-            QProgressBar {{
-                selection-color: {Theme.CRUST};
-                selection-background-color: {Theme.ACCENT};
+                border-radius: 3px;
             }}
         """)
         frame_layout.addWidget(self.progress_bar)
@@ -194,7 +209,7 @@ class MainWindow(QMainWindow):
         
         # Filter Input
         self.filter_input = QLineEdit()
-        self.filter_input.setPlaceholderText("Filter files by name, title, artist, album...")
+        self.filter_input.setPlaceholderText("Search by name, title, artist, album...")
         self.filter_input.setClearButtonEnabled(True)
         self.filter_input.textChanged.connect(self.on_filter_changed)
         self.filter_input.setStyleSheet(f"""
@@ -211,6 +226,12 @@ class MainWindow(QMainWindow):
             }}
         """)
         left_panel.addWidget(self.filter_input)
+        
+        # Filter Debounce Timer
+        self.filter_timer = QTimer(self)
+        self.filter_timer.setSingleShot(True)
+        self.filter_timer.setInterval(200)
+        self.filter_timer.timeout.connect(self._apply_filter)
         
         # File List (Left/Center)
         self.file_list = FileList()
@@ -253,18 +274,18 @@ class MainWindow(QMainWindow):
         from tagqt.ui.palette import CommandPalette
         self.command_palette = CommandPalette(self)
         self.command_palette.register_commands([
-            {"name": "Open Folder", "shortcut": "Ctrl+O", "callback": self.open_folder_dialog},
-            {"name": "Save Changes", "shortcut": "Ctrl+S", "callback": self.save_metadata},
-            {"name": "Get Covers (All)", "shortcut": "", "callback": self.fetch_all_covers},
-            {"name": "Get Lyrics (All)", "shortcut": "", "callback": self.fetch_all_lyrics},
-            {"name": "Rename Files", "shortcut": "", "callback": self.rename_all_files},
-            {"name": "Auto-Tag (All)", "shortcut": "", "callback": self.autotag_all},
+            {"name": "Open folder", "shortcut": "Ctrl+O", "callback": self.open_folder_dialog},
+            {"name": "Save changes", "shortcut": "Ctrl+S", "callback": self.save_metadata},
+            {"name": "Fetch covers (all)", "shortcut": "", "callback": self.fetch_all_covers},
+            {"name": "Fetch lyrics (all)", "shortcut": "", "callback": self.fetch_all_lyrics},
+            {"name": "Rename files", "shortcut": "", "callback": self.rename_all_files},
+            {"name": "Auto-tag (all)", "shortcut": "", "callback": self.autotag_all},
             {"name": "Re-encode FLAC", "shortcut": "", "callback": self.reencode_flac_selected},
-            {"name": "Romanize Lyrics", "shortcut": "", "callback": self.romanize_all},
-            {"name": "Resize Covers", "shortcut": "", "callback": self.resize_all_covers},
-            {"name": "Toggle Theme", "shortcut": "", "callback": lambda: self.toggle_theme(not Theme._is_light)},
-            {"name": "Exit Global Edit", "shortcut": "Escape", "callback": self.exit_global_mode},
-            {"name": "Hints & Tips", "shortcut": "", "callback": self.show_hints},
+            {"name": "Romanize lyrics", "shortcut": "", "callback": self.romanize_all},
+            {"name": "Resize covers", "shortcut": "", "callback": self.resize_all_covers},
+            {"name": "Toggle theme", "shortcut": "", "callback": lambda: self.toggle_theme(not Theme._is_light)},
+            {"name": "Exit global edit", "shortcut": "Escape", "callback": self.exit_global_mode},
+            {"name": "Hints and tips", "shortcut": "", "callback": self.show_hints},
             {"name": "About TagQt", "shortcut": "", "callback": self.show_about},
         ])
 
@@ -272,6 +293,46 @@ class MainWindow(QMainWindow):
         self.command_palette.show()
 
     def closeEvent(self, event):
+        """Warn about unsaved changes and clean up threads before closing."""
+        # Check for unsaved changes in single-file mode
+        has_unsaved = False
+        if self.metadata and not getattr(self.sidebar, 'is_global_mode', False):
+            # Compare current sidebar values to loaded metadata
+            if (self.sidebar.title_edit.text() != (self.metadata.title or '') or
+                self.sidebar.artist_edit.text() != (self.metadata.artist or '') or
+                self.sidebar.album_edit.text() != (self.metadata.album or '')):
+                has_unsaved = True
+        
+        if has_unsaved:
+            from PySide6.QtWidgets import QMessageBox
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Unsaved Changes")
+            msg.setText("You have unsaved changes.")
+            msg.setInformativeText("Save before closing?")
+            save_btn = msg.addButton("Save and quit", QMessageBox.AcceptRole)
+            discard_btn = msg.addButton("Discard", QMessageBox.DestructiveRole)
+            cancel_btn = msg.addButton("Cancel", QMessageBox.RejectRole)
+            msg.setDefaultButton(save_btn)
+            msg.exec()
+            
+            if msg.clickedButton() == save_btn:
+                self.save_metadata()
+            elif msg.clickedButton() == cancel_btn:
+                event.ignore()
+                return
+            # Discard: fall through to close
+        
+        if self.batch_running:
+            from PySide6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self, "Task Running",
+                "A background task is still running. Quit anyway?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                event.ignore()
+                return
+        
         try:
             if self.batch_running and hasattr(self, 'worker') and self.worker:
                 self.worker.stop()
@@ -284,6 +345,7 @@ class MainWindow(QMainWindow):
                     pass
         except Exception:
             pass
+        event.accept()
         super().closeEvent(event)
 
     def on_progress_click(self, event):
@@ -296,8 +358,6 @@ class MainWindow(QMainWindow):
         # We'll use the overlay for all toasts.
         self.toast_manager.show_message(message, duration)
     
-    def _hide_toast(self):
-        pass # No longer needed with ToastManager
 
     def _prepare_batch(self, title):
         if self.batch_running:
@@ -312,7 +372,7 @@ class MainWindow(QMainWindow):
                     self.worker = None
             
             if is_running:
-                dialogs.show_warning(self, "Busy", "Another operation is already in progress. Please wait for the previous one to finish.")
+                dialogs.show_warning(self, "Busy", "Another task is still running. Wait for it to finish or cancel it first.")
                 return False
             else:
                 # Stale state, reset
@@ -331,7 +391,7 @@ class MainWindow(QMainWindow):
         self.batch_container.setVisible(True)
         self.batch_cancel_btn.setVisible(True)
         self.progress_bar.setValue(0)
-        self.progress_bar.setFormat("Starting...")
+        self.progress_label.setText("Starting…")
         return True
 
     def _start_batch_worker(self, worker, result_handler=None, connect_log=False):
@@ -385,7 +445,7 @@ class MainWindow(QMainWindow):
         
         file_menu.addSeparator()
         
-        exit_action = QAction("Exit", self)
+        exit_action = QAction("Quit", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
@@ -393,7 +453,7 @@ class MainWindow(QMainWindow):
         # Edit Menu
         edit_menu = menu_bar.addMenu("Edit")
         
-        global_edit_action = QAction("Global Edit (All Visible)", self)
+        global_edit_action = QAction("Edit all visible", self)
         global_edit_action.setShortcut("Ctrl+G")
         global_edit_action.triggered.connect(self.enter_global_mode)
         edit_menu.addAction(global_edit_action)
@@ -431,45 +491,45 @@ class MainWindow(QMainWindow):
         
         lyrics_menu = tools_menu.addMenu("Lyrics")
         
-        fetch_lyrics_action = QAction("Get Lyrics (All Visible)", self)
+        fetch_lyrics_action = QAction("Fetch lyrics (all visible)", self)
         fetch_lyrics_action.triggered.connect(self.fetch_all_lyrics)
         lyrics_menu.addAction(fetch_lyrics_action)
         
-        romanize_all_action = QAction("Romanize Lyrics (All Visible)", self)
+        romanize_all_action = QAction("Romanize lyrics (all visible)", self)
         romanize_all_action.triggered.connect(self.romanize_all)
         lyrics_menu.addAction(romanize_all_action)
         
         covers_menu = tools_menu.addMenu("Covers")
         
-        fetch_covers_action = QAction("Get Covers (All Visible)", self)
+        fetch_covers_action = QAction("Fetch covers (all visible)", self)
         fetch_covers_action.triggered.connect(self.fetch_all_covers)
         covers_menu.addAction(fetch_covers_action)
         
-        resize_selected_action = QAction("Resize Covers (Selected)", self)
+        resize_selected_action = QAction("Resize covers (selected)", self)
         resize_selected_action.triggered.connect(self.resize_selected_covers)
         covers_menu.addAction(resize_selected_action)
         
-        resize_all_action = QAction("Resize Covers (All Visible)", self)
+        resize_all_action = QAction("Resize covers (all visible)", self)
         resize_all_action.triggered.connect(self.resize_all_covers)
         covers_menu.addAction(resize_all_action)
         
         file_actions_menu = tools_menu.addMenu("File Actions")
         
-        rename_selected_action = QAction("Rename Files (Selected)", self)
+        rename_selected_action = QAction("Rename files (selected)", self)
         rename_selected_action.triggered.connect(self.rename_selected_files)
         file_actions_menu.addAction(rename_selected_action)
         
-        rename_all_action = QAction("Rename Files (All Visible)", self)
+        rename_all_action = QAction("Rename files (all visible)", self)
         rename_all_action.triggered.connect(self.rename_all_files)
         file_actions_menu.addAction(rename_all_action)
         
         file_actions_menu.addSeparator()
         
-        reencode_action = QAction("Re-encode FLAC (Selected)", self)
+        reencode_action = QAction("Re-encode FLAC (selected)", self)
         reencode_action.triggered.connect(self.reencode_flac_selected)
         file_actions_menu.addAction(reencode_action)
         
-        reencode_all_action = QAction("Re-encode FLAC (All Visible)", self)
+        reencode_all_action = QAction("Re-encode FLAC (all visible)", self)
         reencode_all_action.triggered.connect(self.reencode_flac_all)
         file_actions_menu.addAction(reencode_all_action)
         
@@ -508,7 +568,7 @@ class MainWindow(QMainWindow):
         # Help Menu
         help_menu = menu_bar.addMenu("Help")
         
-        hints_action = QAction("Hints && Tips", self)
+        hints_action = QAction("Hints and Tips", self)
         hints_action.triggered.connect(self.show_hints)
         help_menu.addAction(hints_action)
         
@@ -535,7 +595,7 @@ class MainWindow(QMainWindow):
         # Add actions from Tools menu
         
         # Covers
-        get_covers_action = QAction("Get Covers (Selected)", self)
+        get_covers_action = QAction("Fetch covers", self)
         # fetch_all_covers checks selection if global mode, but we might need to force it
         # Actually fetch_all_covers checks sidebar.is_global_mode. 
         # We should probably make a helper that respects selection regardless of mode for context menu.
@@ -547,7 +607,7 @@ class MainWindow(QMainWindow):
         get_covers_action.setEnabled(has_selection)
         menu.addAction(get_covers_action)
         
-        resize_covers_action = QAction("Resize Covers (Selected)", self)
+        resize_covers_action = QAction("Resize covers", self)
         resize_covers_action.triggered.connect(self.resize_selected_covers)
         resize_covers_action.setEnabled(has_selection)
         menu.addAction(resize_covers_action)
@@ -555,12 +615,12 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         
         # Lyrics
-        get_lyrics_action = QAction("Get Lyrics (Selected)", self)
+        get_lyrics_action = QAction("Fetch lyrics", self)
         get_lyrics_action.triggered.connect(self.fetch_lyrics_context)
         get_lyrics_action.setEnabled(has_selection)
         menu.addAction(get_lyrics_action)
         
-        romanize_action = QAction("Romanize Lyrics (Selected)", self)
+        romanize_action = QAction("Romanize lyrics", self)
         romanize_action.triggered.connect(self.romanize_context)
         romanize_action.setEnabled(has_selection)
         menu.addAction(romanize_action)
@@ -568,19 +628,19 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         
         # File Actions
-        rename_action = QAction("Rename Files (Selected)", self)
+        rename_action = QAction("Rename files", self)
         rename_action.triggered.connect(self.rename_selected_files)
         rename_action.setEnabled(has_selection)
         menu.addAction(rename_action)
         
-        reencode_action = QAction("Re-encode FLAC (Selected)", self)
+        reencode_action = QAction("Re-encode FLAC", self)
         reencode_action.triggered.connect(self.reencode_flac_selected)
         reencode_action.setEnabled(has_selection)
         menu.addAction(reencode_action)
         
         menu.addSeparator()
         
-        autotag_action = QAction("Auto-Tag (Selected)", self)
+        autotag_action = QAction("Auto-tag from MusicBrainz", self)
         autotag_action.triggered.connect(self.autotag_selected)
         autotag_action.setEnabled(has_selection)
         menu.addAction(autotag_action)
@@ -619,14 +679,16 @@ class MainWindow(QMainWindow):
             iterator += 1
             
         if not has_visible:
-            self.show_toast("No files are currently visible to edit.")
+            self.show_toast("No visible files to edit. Open a folder first.")
         else:
-            # Force update if needed, but selection change should trigger it
-            pass
+            self.show_toast("Global edit — changes apply to all visible files.")
 
 
 
     def exit_global_mode(self):
+        if not getattr(self.sidebar, 'is_global_mode', False):
+            return  # Not in global mode, nothing to do
+        
         self.sidebar.set_global_mode(False)
         
         files = self.get_selected_files()
@@ -651,6 +713,8 @@ class MainWindow(QMainWindow):
                 self.file_list.clearSelection()
         else:
             self.file_list.clearSelection()
+        
+        self.show_toast("Exited global edit.")
 
     def get_selected_files(self):
         # Helper to get selected files from FileList
@@ -707,14 +771,15 @@ class MainWindow(QMainWindow):
 
     def _fetch_lyrics_list(self, files):
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
             
         if not self._prepare_batch("Get Lyrics Status"):
             return
             
         self.progress_bar.setRange(0, len(files))
-        self.progress_bar.setFormat("Processing... 0%")
+        self._batch_op_label = "Fetching lyrics"
+        self.progress_label.setText("Fetching lyrics… 0%")
         
         self._start_batch_worker(LyricsWorker(files, self.lyrics_fetcher), connect_log=True)
 
@@ -734,7 +799,12 @@ class MainWindow(QMainWindow):
             else:
                 self.progress_bar.setValue(target_value)
             
-            self.progress_bar.setFormat(f"Processing... {target_value}%")
+            # Use stored operation label, with near-completion message
+            op = getattr(self, '_batch_op_label', 'Working')
+            if target_value >= 90:
+                self.progress_label.setText(f"Almost done… {target_value}%")
+            else:
+                self.progress_label.setText(f"{op}… {target_value}%")
         self.batch_dialog.update_progress(current, total)
         
     def on_batch_result(self, filepath, status, message):
@@ -743,14 +813,15 @@ class MainWindow(QMainWindow):
             self.file_list.update_file(filepath)
         
     def on_batch_log(self, message):
-        print(message)
+        import logging
+        logging.getLogger(__name__).debug(message)
     
     def cancel_batch_operation(self):
         if hasattr(self, 'worker') and self.worker:
             self.worker.stop()
         
         self.batch_cancel_btn.setEnabled(False)
-        self.batch_cancel_btn.setText("Stopping...")
+        self.batch_cancel_btn.setText("Stopping…")
         
         if hasattr(self, 'thread') and self.thread and self.thread.isRunning():
             self.thread.finished.connect(self._on_cancel_complete)
@@ -763,22 +834,27 @@ class MainWindow(QMainWindow):
         self.batch_cancel_btn.setEnabled(True)
         self.batch_cancel_btn.setText("Cancel")
         self._persistent_toast = None
-        self.show_toast("Operation canceled", duration=3000)
+        self.show_toast("Canceled.", duration=3000)
         
     def on_batch_finished(self):
         self.batch_running = False
         self.batch_dialog.set_finished()
         # self.batch_container.setVisible(False) # Keep visible for persistence
         self.batch_cancel_btn.setVisible(False)
-        self.progress_bar.setFormat("Finished (Click for details)")
+        self.progress_label.setText("Done — click for details")
         self.progress_bar.setValue(self.progress_bar.maximum())
+        
+        # Auto-exit global mode after a global save completes
+        if getattr(self, '_global_save_pending', False):
+            self._global_save_pending = False
+            self.exit_global_mode()
         
         # Generate detailed summary
         results = self.batch_dialog.results
         total = len(results)
         
         if total == 0:
-            self.show_toast("Done (No files processed)", is_batch=True)
+            self.show_toast("Nothing to process.", is_batch=True)
             return
 
         success_count = len([r for r in results if r['status'] in ['Success', 'Updated', 'Found', 'Renamed']])
@@ -786,17 +862,17 @@ class MainWindow(QMainWindow):
         error_count = len([r for r in results if r['status'] in ['Error', 'Missing', 'Failed']])
         
         if skipped_count == total:
-            msg = f"Skipped, {total} files already up to date."
+            msg = f"All {total} files already up to date."
         elif success_count == total:
-            msg = f"Done, updated {total} files."
+            msg = f"All done — updated {total} files."
         elif error_count == total:
-            msg = f"Failed, {total} errors occurred."
+            msg = f"{total} files had errors. Click the bar for details."
         else:
             parts = []
             if success_count > 0: parts.append(f"Updated {success_count}")
             if skipped_count > 0: parts.append(f"Skipped {skipped_count}")
             if error_count > 0: parts.append(f"Failed {error_count}")
-            msg = "Done. " + ", ".join(parts)
+            msg = "Done — " + ", ".join(parts).lower()
             
         self.show_toast(msg, is_batch=True)
         
@@ -817,28 +893,29 @@ class MainWindow(QMainWindow):
 
     def _fetch_covers_list(self, files):
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
             
         if not self._prepare_batch("Get Covers Status"):
             return
             
         self.progress_bar.setRange(0, len(files))
-        self.progress_bar.setFormat("Processing... 0%")
+        self._batch_op_label = "Fetching covers"
+        self.progress_label.setText("Fetching covers… 0%")
         
         self._start_batch_worker(CoverFetchWorker(files, self.cover_manager))
 
     def resize_selected_covers(self):
         files = self.get_selected_files()
         if not files:
-            dialogs.show_warning(self, "No Selection", "Please select files.")
+            dialogs.show_warning(self, "No Selection", "Select some files first.")
             return
         self._resize_covers(files)
 
     def resize_all_covers(self):
         files = self.get_all_files()
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
         self._resize_covers(files)
 
@@ -847,7 +924,8 @@ class MainWindow(QMainWindow):
             return
             
         self.progress_bar.setRange(0, len(files))
-        self.progress_bar.setFormat("Resizing... 0%")
+        self._batch_op_label = "Resizing covers"
+        self.progress_label.setText("Resizing covers… 0%")
         
         self._start_batch_worker(CoverResizeWorker(files))
 
@@ -858,39 +936,40 @@ class MainWindow(QMainWindow):
     def _romanize_list(self, files):
         available, msg = DependencyChecker.check_koroman()
         if not available:
-            dialogs.show_error(self, "Missing Dependency", msg)
+            dialogs.show_error(self, "Missing Tool", msg)
             return
         
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
             
         if not self._prepare_batch("Romanize Status"):
             return
             
         self.progress_bar.setRange(0, len(files))
-        self.progress_bar.setFormat("Romanizing... 0%")
+        self._batch_op_label = "Romanizing lyrics"
+        self.progress_label.setText("Romanizing lyrics… 0%")
         
         self._start_batch_worker(RomanizeWorker(files, self.romanizer))
 
     def open_rename_dialog(self):
         files = self.get_selected_files()
         if not files:
-            dialogs.show_warning(self, "No Selection", "Please select files to rename.")
+            dialogs.show_warning(self, "No Selection", "Select the files you want to rename.")
             return
         self._show_rename_dialog(files)
 
     def rename_selected_files(self):
         files = self.get_selected_files()
         if not files:
-            dialogs.show_warning(self, "No Selection", "Please select files to rename.")
+            dialogs.show_warning(self, "No Selection", "Select the files you want to rename.")
             return
         self._show_rename_dialog(files)
 
     def rename_all_files(self):
         files = self.get_all_files()
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
         self._show_rename_dialog(files)
 
@@ -912,8 +991,8 @@ class MainWindow(QMainWindow):
                 return
             
             self.progress_bar.setRange(0, len(rename_data))
-            self.progress_bar.setRange(0, len(rename_data))
-            self.progress_bar.setFormat("Renaming... 0%")
+            self._batch_op_label = "Renaming files"
+            self.progress_label.setText("Renaming files… 0%")
             
             self._start_batch_worker(RenameWorker(rename_data), result_handler=self.on_rename_result)
 
@@ -935,28 +1014,29 @@ class MainWindow(QMainWindow):
     def convert_case(self, mode):
         files = self.get_selected_files()
         if not files:
-            dialogs.show_warning(self, "No Selection", "Please select files.")
+            dialogs.show_warning(self, "No Selection", "Select some files first.")
             return
             
         if not self._prepare_batch("Case Conversion Status"):
             return
             
         self.progress_bar.setRange(0, len(files))
-        self.progress_bar.setFormat("Converting... 0%")
+        self._batch_op_label = "Converting case"
+        self.progress_label.setText("Converting case… 0%")
         
         self._start_batch_worker(CaseConvertWorker(files, mode))
 
     def reencode_flac_selected(self):
         files = self.get_selected_files()
         if not files:
-            dialogs.show_warning(self, "No Selection", "Please select files to re-encode.")
+            dialogs.show_warning(self, "No Selection", "Select the FLAC files you want to re-encode.")
             return
         self._reencode_flac_files(files)
 
     def reencode_flac_all(self):
         files = self.get_all_files()
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
         self._reencode_flac_files(files)
 
@@ -968,66 +1048,68 @@ class MainWindow(QMainWindow):
         
         flac_files = [f for f in files if f.lower().endswith('.flac')]
         if not flac_files:
-            dialogs.show_warning(self, "No FLAC Files", "No FLAC files in selection.")
+            dialogs.show_warning(self, "No FLAC Files", "None of the selected files are FLAC. Pick some FLAC files and try again.")
             return
         
         if not self._prepare_batch("Re-encode FLAC Status"):
             return
             
         self.progress_bar.setRange(0, len(flac_files))
-        self.progress_bar.setFormat("Re-encoding... 0%")
+        self._batch_op_label = "Re-encoding FLAC"
+        self.progress_label.setText("Re-encoding FLAC… 0%")
         
         self._start_batch_worker(FlacReencodeWorker(flac_files))
 
     def export_to_csv(self):
         files = self.file_list.all_files
         if not files:
-            dialogs.show_warning(self, "No Files", "No files to export.")
+            dialogs.show_warning(self, "No Files", "Load some audio files before exporting.")
             return
         
         filepath, _ = QFileDialog.getSaveFileName(
-            self, "Export Metadata", "", "CSV Files (*.csv)")
+            self, "Export metadata to CSV", "", "CSV Files (*.csv)")
         if not filepath:
             return
         
         from tagqt.core.csv_io import export_metadata_to_csv
         success, error = export_metadata_to_csv(files, filepath)
         if success:
-            self.show_toast(f"Exported {len(files)} files to CSV")
+            self.show_toast(f"Exported {len(files)} files to CSV.")
         else:
-            dialogs.show_warning(self, "Export Failed", error)
+            dialogs.show_warning(self, "Couldn't Export", error)
 
     def import_from_csv(self):
         filepath, _ = QFileDialog.getOpenFileName(
-            self, "Import Metadata", "", "CSV Files (*.csv)")
+            self, "Import metadata from CSV", "", "CSV Files (*.csv)")
         if not filepath:
             return
         
         from tagqt.core.csv_io import import_metadata_from_csv
         rows, error = import_metadata_from_csv(filepath)
         if error:
-            dialogs.show_warning(self, "Import Failed", error)
+            dialogs.show_warning(self, "Couldn't Import", error)
             return
         
         if not self._prepare_batch("CSV Import Status"):
             return
             
         self.progress_bar.setRange(0, len(rows))
-        self.progress_bar.setFormat("Importing... 0%")
+        self._batch_op_label = "Importing CSV"
+        self.progress_label.setText("Importing CSV… 0%")
         
         self._start_batch_worker(CsvImportWorker(rows))
 
     def autotag_selected(self):
         files = self.get_selected_files()
         if not files:
-            dialogs.show_warning(self, "No Files", "No files selected.")
+            dialogs.show_warning(self, "No Files", "Select some files first.")
             return
         self._autotag_files(files)
     
     def autotag_all(self):
         files = self.get_all_files()
         if not files:
-            dialogs.show_warning(self, "No Files", "No files loaded.")
+            dialogs.show_warning(self, "No Files", "Open a folder to load audio files first.")
             return
         self._autotag_files(files)
     
@@ -1035,12 +1117,12 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QMessageBox
         
         msg = QMessageBox(self)
-        msg.setWindowTitle("Auto-Tag Options")
+        msg.setWindowTitle("Auto-Tag")
         msg.setText(f"Auto-tag {len(files)} files from MusicBrainz?")
-        msg.setInformativeText("Choose how to handle files that already have tags:")
+        msg.setInformativeText("What about files that already have tags?")
         
-        skip_btn = msg.addButton("Skip Tagged Files", QMessageBox.AcceptRole)
-        all_btn = msg.addButton("Process All Files", QMessageBox.ActionRole)
+        skip_btn = msg.addButton("Skip tagged", QMessageBox.AcceptRole)
+        all_btn = msg.addButton("Tag everything", QMessageBox.ActionRole)
         cancel_btn = msg.addButton("Cancel", QMessageBox.RejectRole)
         
         msg.setDefaultButton(skip_btn)
@@ -1058,7 +1140,8 @@ class MainWindow(QMainWindow):
             return
             
         self.progress_bar.setRange(0, len(files))
-        self.progress_bar.setFormat("Auto-tagging... 0%")
+        self._batch_op_label = "Auto-tagging"
+        self.progress_label.setText("Auto-tagging… 0%")
         
         self._start_batch_worker(AutoTagWorker(files, skip_existing=skip_existing), connect_log=True)
 
@@ -1071,7 +1154,8 @@ class MainWindow(QMainWindow):
         if not self._prepare_batch("Loading Folder"):
             return
             
-        self.progress_bar.setFormat("Scanning folder...")
+        self._batch_op_label = "Scanning folder"
+        self.progress_label.setText("Scanning folder…")
         self.progress_bar.setRange(0, 0) # Indeterminate
         
         # Create Thread and Worker
@@ -1112,9 +1196,9 @@ class MainWindow(QMainWindow):
         self.batch_cancel_btn.setVisible(False)
         
         if results:
-            self.show_toast(f"Loaded {len(results)} files from {os.path.basename(folder_path)}", is_batch=True)
+            self.show_toast(f"{len(results)} files loaded from {os.path.basename(folder_path)}.", is_batch=True)
         else:
-             self.show_toast(f"No audio files found in {os.path.basename(folder_path)}", is_batch=False)
+             self.show_toast(f"No audio files in {os.path.basename(folder_path)}.", is_batch=False)
 
     def update_recent_menu(self):
         self.recent_menu.clear()
@@ -1152,7 +1236,7 @@ class MainWindow(QMainWindow):
             self.sidebar.setStyleSheet(stylesheet)
             self.sidebar.apply_theme()
             
-            self.title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {Theme.ACCENT};")
+            self.title_label.setStyleSheet("background: transparent;")
             
             self.batch_cancel_btn.setStyleSheet(f"""
                 QPushButton {{
@@ -1189,22 +1273,27 @@ class MainWindow(QMainWindow):
                 }}
             """)
             
+            self.progress_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {Theme.SUBTEXT1};
+                    font-size: 12px;
+                    font-weight: normal;
+                    background: transparent;
+                    border: none;
+                }}
+            """)
+            
             self.progress_bar.setStyleSheet(f"""
                 QProgressBar {{
                     border: none;
                     background-color: {Theme.SURFACE0};
-                    border-radius: 4px;
-                    color: {Theme.TEXT};
-                    font-size: 11px;
-                    font-weight: 600;
+                    border-radius: 3px;
+                    min-height: 6px;
+                    max-height: 6px;
                 }}
                 QProgressBar::chunk {{
                     background-color: {Theme.ACCENT};
-                    border-radius: 4px;
-                }}
-                QProgressBar {{
-                    selection-color: {Theme.CRUST};
-                    selection-background-color: {Theme.ACCENT};
+                    border-radius: 3px;
                 }}
             """)
             
@@ -1240,7 +1329,7 @@ class MainWindow(QMainWindow):
 """
         from tagqt.ui.help import HelpDialog
         dialog = HelpDialog(self)
-        dialog.setWindowTitle("Hints & Tips")
+        dialog.setWindowTitle("Hints and Tips")
         dialog.set_content(hints_text)
         dialog.exec()
     
@@ -1262,21 +1351,38 @@ class MainWindow(QMainWindow):
         dialog.exec()
     
     def show_about(self):
+        import os, base64
+        from PySide6.QtSvg import QSvgRenderer
+        from PySide6.QtGui import QPixmap, QPainter
+        from PySide6.QtCore import QBuffer, QIODevice
+        
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets', 'logo.svg')
+        renderer = QSvgRenderer(logo_path)
+        svg_size = renderer.defaultSize()
+        target_h = 48
+        target_w = int(svg_size.width() * target_h / svg_size.height())
+        logo_pixmap = QPixmap(target_w, target_h)
+        logo_pixmap.fill(Qt.transparent)
+        painter = QPainter(logo_pixmap)
+        renderer.render(painter)
+        painter.end()
+        
+        # Convert pixmap to base64 for HTML embedding
+        buffer = QBuffer()
+        buffer.open(QIODevice.WriteOnly)
+        logo_pixmap.save(buffer, "PNG")
+        logo_b64 = base64.b64encode(buffer.data().data()).decode()
+        
         about_text = f"""
-<div style="text-align: center; margin-bottom: 20px;">
-<span style="font-size: 24px; font-weight: bold; color: {Theme.ACCENT};">TagQt</span><br>
-<span style="color: {Theme.SUBTEXT0};">Music Metadata Editor</span>
+<div style="text-align: center; margin-bottom: 10px;">
+<img src="data:image/png;base64,{logo_b64}" width="{target_w}" height="{target_h}"><br>
+<span style="color: {Theme.SUBTEXT0};">v1.0.0</span>
 </div>
 
-<p>A modern application for editing audio file metadata.</p>
+<p>A fast, modern music tag editor. Edit metadata, fetch lyrics and covers,
+auto-tag from MusicBrainz, batch rename files — all in one place.</p>
 
-<b>Features</b>
-<ul>
-<li>Edit tags for MP3, FLAC, OGG, M4A, WAV</li>
-<li>Auto-tag using MusicBrainz</li>
-<li>Fetch lyrics and album artwork</li>
-<li>Batch rename and re-encode</li>
-</ul>
+<p>Supports MP3, FLAC, OGG, M4A, and WAV.</p>
 
 <p style="margin-top: 20px;">
 <a href="https://github.com/selr1/tagqt" style="color: {Theme.ACCENT};">github.com/selr1/tagqt</a>
@@ -1298,7 +1404,12 @@ class MainWindow(QMainWindow):
             self.load_file(files[0])
 
     def on_filter_changed(self, text):
-        self.file_list.set_filter(text)
+        """Debounce filter input to avoid refiltering on every keystroke."""
+        self.filter_timer.start()
+
+    def _apply_filter(self):
+        """Apply the current filter text to the file list."""
+        self.file_list.set_filter(self.filter_input.text())
 
     def on_selection_changed(self):
         # Restart timer (debounce) - waits for selection to stabilize
@@ -1368,14 +1479,16 @@ class MainWindow(QMainWindow):
                 
             changes = self.sidebar.get_modified_fields()
             if not changes:
-                self.show_toast("No fields were modified.")
+                self.show_toast("Nothing changed.")
                 return
                 
             if not self._prepare_batch("Global Save Status"):
                 return
             self.progress_bar.setRange(0, len(files))
-            self.progress_bar.setFormat("Saving... 0%")
+            self._batch_op_label = "Saving changes"
+            self.progress_label.setText("Saving changes… 0%")
             
+            self._global_save_pending = True
             self._start_batch_worker(SaveWorker(files, changes))
             
         else:
@@ -1406,7 +1519,7 @@ class MainWindow(QMainWindow):
             if self.metadata.get_cover():
                 self.metadata.save_cover_file(overwrite=True)
                 
-            self.show_toast("Changes saved")
+            self.show_toast("Saved.")
             
             # Refresh the item in the list
             self.file_list.update_file(self.current_file)
@@ -1418,12 +1531,12 @@ class MainWindow(QMainWindow):
             if files:
                 self._romanize_list(files)
             else:
-                dialogs.show_warning(self, "No Selection", "Please select files to romanize.")
+                dialogs.show_warning(self, "No Selection", "Select the files you want to romanize.")
             return
             
         available, msg = DependencyChecker.check_koroman()
         if not available:
-            dialogs.show_error(self, "Missing Dependency", msg)
+            dialogs.show_error(self, "Missing Tool", msg)
             return
         self.sidebar.lyrics_edit.setText(self.romanizer.romanize_text(self.sidebar.lyrics_edit.toPlainText()))
 
@@ -1448,9 +1561,9 @@ class MainWindow(QMainWindow):
             lyrics = res.get("syncedLyrics") or res.get("plainLyrics")
             if lyrics:
                 self.sidebar.lyrics_edit.setText(lyrics)
-                self.show_toast("Lyrics loaded into editor. Don't forget to save!")
+                self.show_toast("Lyrics loaded — save to keep them.")
             else:
-                dialogs.show_warning(self, "Empty", "Selected result has no lyrics text.")
+                dialogs.show_warning(self, "No Lyrics", "That result doesn't have any lyrics text.")
 
     def search_cover(self):
         if getattr(self.sidebar, 'is_global_mode', False):
@@ -1481,10 +1594,10 @@ class MainWindow(QMainWindow):
                     if self.metadata:
                         self.metadata.set_cover(data)
             except Exception as e:
-                dialogs.show_error(self, "Error", f"Error downloading cover: {e}")
+                dialogs.show_error(self, "Download Failed", f"Couldn't download that cover. {e}")
 
     def load_cover_from_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select Cover Image", "", "Images (*.png *.jpg *.jpeg *.bmp)")
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load cover from file", "", "Images (*.png *.jpg *.jpeg *.bmp)")
         if file_path:
             try:
                 with open(file_path, 'rb') as f:
@@ -1497,12 +1610,12 @@ class MainWindow(QMainWindow):
                     if self.metadata:
                         self.metadata.set_cover(data)
                 else:
-                    dialogs.show_warning(self, "Invalid Image", "The selected file is not a valid image.")
+                    dialogs.show_warning(self, "Unrecognized Image", "That file doesn't look like a valid image. Try a different one.")
             except Exception as e:
-                dialogs.show_error(self, "Error", f"Error loading cover: {e}")
+                dialogs.show_error(self, "Couldn't Load Cover", f"Something went wrong reading that file. {e}")
 
     def load_lyrics_from_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select Lyrics File", "", "Lyrics (*.lrc *.txt)")
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load lyrics from file", "", "Lyrics (*.lrc *.txt)")
         if file_path:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -1510,4 +1623,4 @@ class MainWindow(QMainWindow):
                 
                 self.sidebar.lyrics_edit.setText(lyrics)
             except Exception as e:
-                dialogs.show_error(self, "Error", f"Error loading lyrics: {e}")
+                dialogs.show_error(self, "Couldn't Load Lyrics", f"Something went wrong reading that file. {e}")

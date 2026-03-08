@@ -3,6 +3,5 @@ mutagen
 Pillow
 requests
 koroman
-
 musicbrainzngs
 pytest

@@ -22,11 +22,11 @@ class RenamerDialog(QDialog):
         pattern_layout = QFormLayout()
         self.pattern_edit = QLineEdit("%artist% - %title%")
         self.pattern_edit.textChanged.connect(self.update_preview)
-        pattern_layout.addRow("Pattern:", self.pattern_edit)
+        pattern_layout.addRow("Pattern", self.pattern_edit)
         layout.addLayout(pattern_layout)
         
         # Help Label
-        help_label = QLabel("Available tags: %artist%, %title%, %album%, %year%, %track%, %genre%, %bpm%, %key%")
+        help_label = QLabel("Tags you can use: %artist%, %title%, %album%, %year%, %track%, %genre%, %bpm%, %key%")
         help_label.setStyleSheet(f"color: {Theme.SUBTEXT0}; font-size: 12px;")
         layout.addWidget(help_label)
         

@@ -1,3 +1,5 @@
+import time
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -5,6 +7,8 @@ from PIL import Image
 from io import BytesIO
 
 class CoverArtManager:
+    """Manages cover art searching and downloading from iTunes and MusicBrainz."""
+
     ITUNES_API_URL = "https://itunes.apple.com/search"
 
     def __init__(self):
@@ -14,6 +18,7 @@ class CoverArtManager:
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
 
     def _retry(self, func, max_retries=3):
+        """Execute func with exponential backoff retry on network errors."""
         for attempt in range(max_retries):
             try:
                 return func()

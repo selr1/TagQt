@@ -23,8 +23,8 @@ def load_templates():
         try:
             with open(TEMPLATES_FILE, 'r') as f:
                 return json.load(f)
-        except:
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: Could not load templates file: {e}")
     return {
         "Artist - Title": "%artist% - %title%",
         "Track Title": "%track% %title%",

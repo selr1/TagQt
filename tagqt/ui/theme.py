@@ -1,183 +1,283 @@
+"""
+Catppuccin Mocha theme for TagQt — pixel-perfect VS Code aesthetic.
+
+Single source of truth for ALL colors. No hex strings hardcoded elsewhere.
+"""
+
+
 class Theme:
+    """Catppuccin Mocha color palette and Qt stylesheet generator."""
+
     _is_light = False
-    
-    # Dark Theme (default)
-    BASE = "#050505"
-    MANTLE = "#121212"
-    CRUST = "#000000"
-    
-    TEXT = "#ffffff"
-    SUBTEXT0 = "#b3b3b3"
-    SUBTEXT1 = "#d4d4d4"
-    
-    OVERLAY0 = "#404040"
-    OVERLAY1 = "#525252"
-    OVERLAY2 = "#737373"
-    
-    SURFACE0 = "#1e1e1e"
-    SURFACE1 = "#2d2d2d"
-    SURFACE2 = "#3d3d3d"
-    
-    ACCENT = "#ff2e63"
-    ACCENT_HOVER = "#ff477e"
-    ACCENT_DIM = "#991b3b"
-    
-    RED = "#ff5555"
-    
-    TOAST_TEXT = "#ffffff"  # Always white on colored toast backgrounds
-    
-    WINDOW_BG = BASE
-    SIDEBAR_BG = MANTLE
-    BUTTON_TEXT = TEXT
-    
-    FONT_FAMILY = "Segoe UI"
-    CORNER_RADIUS = "8px"
-    
+
+    # ── Base layers ─────────────────────────────────────────────────────
+    CRUST    = "#11111b"
+    MANTLE   = "#181825"
+    BASE     = "#1e1e2e"
+    SURFACE0 = "#313244"
+    SURFACE1 = "#45475a"
+    SURFACE2 = "#585b70"
+
+    # ── Text ────────────────────────────────────────────────────────────
+    TEXT     = "#cdd6f4"
+    SUBTEXT1 = "#bac2de"
+    SUBTEXT0 = "#a6adc8"
+    OVERLAY2 = "#7f849c"
+    OVERLAY1 = "#6c7086"
+    OVERLAY0 = "#585b70"
+
+    # ── Accent colors ───────────────────────────────────────────────────
+    ROSEWATER = "#f5e0dc"
+    FLAMINGO  = "#f2cdcd"
+    PINK      = "#f5c2e7"
+    MAUVE     = "#cba6f7"
+    RED       = "#f38ba8"
+    MAROON    = "#eba0ac"
+    PEACH     = "#fab387"
+    YELLOW    = "#f9e2af"
+    GREEN     = "#a6e3a1"
+    TEAL      = "#94e2d5"
+    SKY       = "#89dceb"
+    SAPPHIRE  = "#74c7ec"
+    BLUE      = "#89b4fa"
+    LAVENDER  = "#b4befe"
+
+    # ── Semantic aliases ────────────────────────────────────────────────
+    ACCENT       = MAUVE
+    ACCENT_HOVER = "#b597e8"
+    ACCENT_DIM   = "#a688d9"
+    SUCCESS      = GREEN
+    WARNING      = PEACH
+    ERROR        = RED
+
+    TOAST_TEXT   = CRUST
+    WINDOW_BG    = BASE
+    SIDEBAR_BG   = MANTLE
+    BUTTON_TEXT  = TEXT
+
+    FONT_FAMILY   = "JetBrains Mono"
+    CORNER_RADIUS = "4px"
+
+    # ── Mode switching ──────────────────────────────────────────────────
+
     @classmethod
     def set_light_mode(cls, enabled):
+        """Toggle between Catppuccin Mocha (dark) and Latte (light)."""
         cls._is_light = enabled
         if enabled:
-            cls.BASE = "#f5f5f5"
-            cls.MANTLE = "#e8e8e8"
-            cls.CRUST = "#ffffff"
-            cls.TEXT = "#1a1a1a"
-            cls.SUBTEXT0 = "#666666"
-            cls.SUBTEXT1 = "#333333"
-            cls.OVERLAY0 = "#cccccc"
-            cls.OVERLAY1 = "#b3b3b3"
-            cls.OVERLAY2 = "#999999"
-            cls.SURFACE0 = "#ffffff"
-            cls.SURFACE1 = "#f0f0f0"
-            cls.SURFACE2 = "#e0e0e0"
-            cls.ACCENT = "#e01e4f"
-            cls.ACCENT_HOVER = "#c91847"
-            cls.ACCENT_DIM = "#a8153b"
-            cls.WINDOW_BG = cls.BASE
+            # Catppuccin Latte
+            cls.CRUST    = "#dce0e8"
+            cls.MANTLE   = "#e6e9ef"
+            cls.BASE     = "#eff1f5"
+            cls.SURFACE0 = "#ccd0da"
+            cls.SURFACE1 = "#bcc0cc"
+            cls.SURFACE2 = "#acb0be"
+            cls.TEXT      = "#4c4f69"
+            cls.SUBTEXT1 = "#5c5f77"
+            cls.SUBTEXT0 = "#6c6f85"
+            cls.OVERLAY2 = "#7c7f93"
+            cls.OVERLAY1 = "#8c8fa1"
+            cls.OVERLAY0 = "#9ca0b0"
+            cls.MAUVE     = "#8839ef"
+            cls.RED       = "#d20f39"
+            cls.PEACH     = "#fe640b"
+            cls.GREEN     = "#40a02b"
+            cls.BLUE      = "#1e66f5"
+            cls.LAVENDER  = "#7287fd"
+            cls.ACCENT       = cls.MAUVE
+            cls.ACCENT_HOVER = "#7730d6"
+            cls.ACCENT_DIM   = "#6627bd"
+            cls.SUCCESS = cls.GREEN
+            cls.WARNING = cls.PEACH
+            cls.ERROR   = cls.RED
+            cls.WINDOW_BG  = cls.BASE
             cls.SIDEBAR_BG = cls.MANTLE
             cls.BUTTON_TEXT = "#ffffff"
         else:
-            cls.BASE = "#050505"
-            cls.MANTLE = "#121212"
-            cls.CRUST = "#000000"
-            cls.TEXT = "#ffffff"
-            cls.SUBTEXT0 = "#b3b3b3"
-            cls.SUBTEXT1 = "#d4d4d4"
-            cls.OVERLAY0 = "#404040"
-            cls.OVERLAY1 = "#525252"
-            cls.OVERLAY2 = "#737373"
-            cls.SURFACE0 = "#1e1e1e"
-            cls.SURFACE1 = "#2d2d2d"
-            cls.SURFACE2 = "#3d3d3d"
-            cls.WINDOW_BG = cls.BASE
+            # Catppuccin Mocha (reset to defaults)
+            cls.CRUST    = "#11111b"
+            cls.MANTLE   = "#181825"
+            cls.BASE     = "#1e1e2e"
+            cls.SURFACE0 = "#313244"
+            cls.SURFACE1 = "#45475a"
+            cls.SURFACE2 = "#585b70"
+            cls.TEXT      = "#cdd6f4"
+            cls.SUBTEXT1 = "#bac2de"
+            cls.SUBTEXT0 = "#a6adc8"
+            cls.OVERLAY2 = "#7f849c"
+            cls.OVERLAY1 = "#6c7086"
+            cls.OVERLAY0 = "#585b70"
+            cls.MAUVE     = "#cba6f7"
+            cls.RED       = "#f38ba8"
+            cls.PEACH     = "#fab387"
+            cls.GREEN     = "#a6e3a1"
+            cls.BLUE      = "#89b4fa"
+            cls.LAVENDER  = "#b4befe"
+            cls.ACCENT       = cls.MAUVE
+            cls.ACCENT_HOVER = "#b597e8"
+            cls.ACCENT_DIM   = "#a688d9"
+            cls.SUCCESS = cls.GREEN
+            cls.WARNING = cls.PEACH
+            cls.ERROR   = cls.RED
+            cls.WINDOW_BG  = cls.BASE
             cls.SIDEBAR_BG = cls.MANTLE
             cls.BUTTON_TEXT = cls.TEXT
+
+    # ── Stylesheet ──────────────────────────────────────────────────────
 
     @staticmethod
     def get_stylesheet():
         return f"""
+            /* ═══ Global ═══════════════════════════════ */
+
             QMainWindow {{
-                background-color: {Theme.WINDOW_BG};
+                background-color: {Theme.BASE};
                 color: {Theme.TEXT};
             }}
             QWidget {{
-                font-family: '{Theme.FONT_FAMILY}', sans-serif;
+                font-family: '{Theme.FONT_FAMILY}', 'Cascadia Code', 'Consolas', monospace;
                 color: {Theme.TEXT};
-                font-size: 14px;
+                font-size: 13px;
             }}
             QLabel {{
                 color: {Theme.TEXT};
-                font-weight: 500;
             }}
+
+            /* ═══ Inputs ══════════════════════════════ */
+
             QLineEdit {{
                 background-color: {Theme.SURFACE0};
                 color: {Theme.TEXT};
                 border: 1px solid {Theme.SURFACE1};
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 10px;
-                selection-background-color: {Theme.ACCENT};
+                border-radius: 4px;
+                padding: 6px 10px;
+                selection-background-color: rgba(137, 180, 250, 0.4);
                 selection-color: {Theme.TEXT};
                 font-size: 13px;
             }}
             QLineEdit:focus {{
-                border: 1px solid {Theme.ACCENT};
+                border: 1px solid {Theme.MAUVE};
+            }}
+            QLineEdit:disabled {{
+                color: {Theme.OVERLAY1};
                 background-color: {Theme.SURFACE0};
             }}
-            QPushButton {{
-                background-color: {Theme.SURFACE1};
+            QTextEdit, QPlainTextEdit {{
+                background-color: {Theme.SURFACE0};
                 color: {Theme.TEXT};
-                border: none;
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 10px 20px;
-                font-weight: 600;
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: 4px;
+                padding: 6px 10px;
+                selection-background-color: rgba(137, 180, 250, 0.4);
+                selection-color: {Theme.TEXT};
+            }}
+            QTextEdit:focus, QPlainTextEdit:focus {{
+                border: 1px solid {Theme.MAUVE};
+            }}
+
+            /* ═══ Buttons ═════════════════════════════ */
+
+            QPushButton {{
+                background-color: {Theme.SURFACE0};
+                color: {Theme.TEXT};
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: 4px;
+                padding: 6px 14px;
+                font-weight: 400;
                 font-size: 13px;
+                min-height: 22px;
             }}
             QPushButton:hover {{
-                background-color: {Theme.SURFACE2};
+                background-color: {Theme.SURFACE1};
+                border: 1px solid {Theme.SURFACE2};
             }}
             QPushButton:pressed {{
-                background-color: {Theme.SURFACE0};
+                background-color: {Theme.SURFACE2};
             }}
-            /* Primary Action Button Style */
+            QPushButton:focus {{
+                border: 1px solid {Theme.MAUVE};
+            }}
+            QPushButton:disabled {{
+                background-color: {Theme.SURFACE0};
+                color: {Theme.OVERLAY1};
+                border: 1px solid {Theme.SURFACE0};
+            }}
+
+            /* Primary */
             QPushButton[class="primary"] {{
-                background-color: {Theme.ACCENT};
-                color: {Theme.TEXT};
+                background-color: {Theme.MAUVE};
+                color: {Theme.CRUST};
+                border: none;
+                font-weight: 600;
             }}
             QPushButton[class="primary"]:hover {{
                 background-color: {Theme.ACCENT_HOVER};
             }}
-
-            /* Secondary/Outlined Button Style */
-            QPushButton[class="secondary"] {{
+            QPushButton[class="primary"]:pressed {{
+                background-color: {Theme.ACCENT_DIM};
+            }}
+            QPushButton[class="primary"]:disabled {{
                 background-color: {Theme.SURFACE0};
-                border: 1px solid {Theme.SURFACE2};
-                color: {Theme.TEXT};
+                color: {Theme.OVERLAY1};
             }}
-            QPushButton[class="secondary"]:hover {{
-                background-color: {Theme.SURFACE1};
-                border: 1px solid {Theme.OVERLAY0};
+
+            /* Destructive */
+            QPushButton[class="destructive"] {{
+                background-color: {Theme.RED};
+                color: {Theme.CRUST};
+                border: none;
             }}
-            
-            /* Combo Box */
+            QPushButton[class="destructive"]:hover {{
+                background-color: #e07b95;
+            }}
+
+            /* ═══ Combo Box ═══════════════════════════ */
+
             QComboBox {{
                 background-color: {Theme.SURFACE0};
                 color: {Theme.TEXT};
                 border: 1px solid {Theme.SURFACE1};
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 8px;
+                border-radius: 4px;
+                padding: 6px 10px;
                 min-width: 100px;
+            }}
+            QComboBox:focus {{
+                border: 1px solid {Theme.MAUVE};
             }}
             QComboBox::drop-down {{
                 border: none;
                 width: 20px;
             }}
             QComboBox QAbstractItemView {{
-                background-color: {Theme.SURFACE0};
+                background-color: {Theme.MANTLE};
                 color: {Theme.TEXT};
-                selection-background-color: {Theme.ACCENT};
-                selection-color: {Theme.TEXT};
+                selection-background-color: {Theme.BLUE};
+                selection-color: {Theme.CRUST};
                 border: 1px solid {Theme.SURFACE1};
             }}
 
-            /* Tree Widget (File List) */
+            /* ═══ Tree Widget (File List) ════════════ */
+
             QTreeWidget {{
-                background-color: {Theme.MANTLE};
-                alternate-background-color: {Theme.SURFACE0};
-                border: 1px solid {Theme.SURFACE0};
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 5px;
+                background-color: {Theme.BASE};
+                alternate-background-color: {Theme.MANTLE};
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: 6px;
+                padding: 4px;
                 outline: none;
             }}
             QTreeWidget::item {{
-                padding: 10px 8px;
-                border-radius: 4px;
-                color: {Theme.SUBTEXT1};
+                padding: 8px 8px;
+                border-radius: 0px;
+                color: {Theme.TEXT};
             }}
             QTreeWidget::item:alternate {{
-                background-color: {Theme.SURFACE0};
+                background-color: {Theme.MANTLE};
             }}
             QTreeWidget::item:selected {{
                 background-color: {Theme.SURFACE1};
-                color: {Theme.ACCENT};
+                color: {Theme.TEXT};
+                border-left: 2px solid {Theme.MAUVE};
             }}
             QTreeWidget::item:hover {{
                 background-color: {Theme.SURFACE0};
@@ -187,139 +287,53 @@ class Theme:
                 color: {Theme.SUBTEXT0};
                 padding: 8px;
                 border: none;
-                border-bottom: 1px solid {Theme.SURFACE0};
-                font-weight: bold;
-                font-size: 12px;
-                text-transform: uppercase;
+                border-bottom: 1px solid {Theme.SURFACE1};
+                font-weight: 600;
+                font-size: 11px;
             }}
-            
+
+            /* ═══ Scroll ═════════════════════════════ */
+
             QScrollArea {{
                 border: none;
                 background-color: transparent;
             }}
-            
-            /* Scrollbar Styling */
             QScrollBar:vertical {{
                 border: none;
-                background: {Theme.MANTLE};
-                width: 8px;
+                background: transparent;
+                width: 10px;
                 margin: 0;
             }}
             QScrollBar::handle:vertical {{
-                background: {Theme.SURFACE2};
+                background: rgba(88, 91, 112, 0.6);
                 min-height: 20px;
                 border-radius: 4px;
             }}
             QScrollBar::handle:vertical:hover {{
                 background: {Theme.OVERLAY0};
             }}
+            QScrollBar::handle:vertical:pressed {{
+                background: {Theme.OVERLAY1};
+            }}
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
             }}
-            
-            /* GroupBox / Frames */
-            QFrame {{
-                border: none;
-            }}
-
-            /* File Dialog & Generic Views */
-            QFileDialog {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.TEXT};
-            }}
-            QListView, QTreeView {{
-                background-color: {Theme.MANTLE};
-                alternate-background-color: {Theme.SURFACE0};
-                color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE0};
-                border-radius: {Theme.CORNER_RADIUS};
-                outline: none;
-            }}
-            QListView::item:selected, QTreeView::item:selected {{
-                background-color: {Theme.SURFACE1};
-                color: {Theme.ACCENT};
-            }}
-            QListView::item:hover, QTreeView::item:hover {{
-                background-color: {Theme.SURFACE0};
-            }}
-            /* Fix for standard headers in dialogs */
-            QHeaderView::section {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.SUBTEXT0};
-                padding: 5px;
-                border: none;
-                border-bottom: 1px solid {Theme.SURFACE0};
-            }}
-
-            /* Message Box */
-            QMessageBox {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.TEXT};
-            }}
-            QMessageBox QLabel {{
-                color: {Theme.TEXT};
-            }}
-            
-            /* Dialogs */
-            QDialog {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.TEXT};
-            }}
-            
-            /* Menus */
-            QMenuBar {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.TEXT};
-                border-bottom: 1px solid {Theme.SURFACE0};
-            }}
-            QMenuBar::item {{
-                background-color: transparent;
-                padding: 8px 12px;
-                color: {Theme.TEXT};
-            }}
-            QMenuBar::item:selected {{
-                background-color: {Theme.SURFACE1};
-                color: {Theme.ACCENT};
-            }}
-            QMenuBar::item:pressed {{
-                background-color: {Theme.SURFACE0};
-            }}
-            
-            QMenu {{
-                background-color: {Theme.SURFACE0};
-                color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE1};
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 8px;
-            }}
-            QMenu::item {{
-                padding: 12px 24px;
-                border-radius: 4px;
-            }}
-            QMenu::item:selected {{
-                background-color: {Theme.ACCENT};
-                color: {Theme.CRUST};
-            }}
-            QMenu::separator {{
-                height: 1px;
-                background: {Theme.SURFACE1};
-                margin: 8px 10px;
-            }}
-            
-            /* Horizontal Scrollbar */
             QScrollBar:horizontal {{
                 border: none;
-                background: {Theme.MANTLE};
-                height: 8px;
+                background: transparent;
+                height: 10px;
                 margin: 0;
             }}
             QScrollBar::handle:horizontal {{
-                background: {Theme.SURFACE2};
+                background: rgba(88, 91, 112, 0.6);
                 min-width: 20px;
                 border-radius: 4px;
             }}
             QScrollBar::handle:horizontal:hover {{
                 background: {Theme.OVERLAY0};
+            }}
+            QScrollBar::handle:horizontal:pressed {{
+                background: {Theme.OVERLAY1};
             }}
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                 width: 0px;
@@ -328,51 +342,122 @@ class Theme:
             QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
                 background: none;
             }}
-            
-            /* Progress Bar */
-            QProgressBar {{
-                background-color: {Theme.SURFACE0};
+
+            /* ═══ Frames ═════════════════════════════ */
+
+            QFrame {{
                 border: none;
-                border-radius: 4px;
-                text-align: center;
+            }}
+
+            /* ═══ Dialogs & Views ════════════════════ */
+
+            QDialog {{
+                background-color: {Theme.BASE};
                 color: {Theme.TEXT};
-                height: 20px;
             }}
-            QProgressBar::chunk {{
-                background-color: {Theme.ACCENT};
-                border-radius: 4px;
+            QMessageBox {{
+                background-color: {Theme.BASE};
+                color: {Theme.TEXT};
             }}
-            
-            /* Progress Dialog */
-            QProgressDialog {{
+            QMessageBox QLabel {{
+                color: {Theme.TEXT};
+            }}
+            QFileDialog {{
                 background-color: {Theme.MANTLE};
                 color: {Theme.TEXT};
             }}
-            
-            /* Text Edit & Plain Text Edit */
-            QTextEdit, QPlainTextEdit {{
-                background-color: {Theme.SURFACE0};
+            QInputDialog {{
+                background-color: {Theme.BASE};
+            }}
+
+            QListView, QTreeView {{
+                background-color: {Theme.BASE};
+                alternate-background-color: {Theme.MANTLE};
                 color: {Theme.TEXT};
                 border: 1px solid {Theme.SURFACE1};
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 10px;
-                selection-background-color: {Theme.ACCENT};
-                selection-color: {Theme.TEXT};
+                border-radius: 6px;
+                outline: none;
             }}
-            QTextEdit:focus, QPlainTextEdit:focus {{
-                border: 1px solid {Theme.ACCENT};
+            QListView::item:selected, QTreeView::item:selected {{
+                background-color: {Theme.SURFACE1};
+                color: {Theme.TEXT};
             }}
-            
-            /* Spin Box */
+            QListView::item:hover, QTreeView::item:hover {{
+                background-color: {Theme.SURFACE0};
+            }}
+
+            /* ═══ Menus ══════════════════════════════ */
+
+            QMenuBar {{
+                background-color: {Theme.CRUST};
+                color: {Theme.TEXT};
+                border-bottom: 1px solid {Theme.SURFACE1};
+                font-size: 13px;
+            }}
+            QMenuBar::item {{
+                background-color: transparent;
+                padding: 8px 12px;
+                color: {Theme.TEXT};
+            }}
+            QMenuBar::item:selected {{
+                background-color: {Theme.SURFACE0};
+                color: {Theme.TEXT};
+            }}
+            QMenuBar::item:pressed {{
+                background-color: {Theme.SURFACE1};
+            }}
+            QMenu {{
+                background-color: {Theme.MANTLE};
+                color: {Theme.TEXT};
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: 4px;
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 8px 24px;
+                border-radius: 4px;
+            }}
+            QMenu::item:selected {{
+                background-color: {Theme.SURFACE0};
+                color: {Theme.TEXT};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {Theme.SURFACE1};
+                margin: 4px 8px;
+            }}
+
+            /* ═══ Progress ═══════════════════════════ */
+
+            QProgressBar {{
+                background-color: {Theme.SURFACE0};
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: 4px;
+                text-align: center;
+                color: {Theme.SUBTEXT1};
+                height: 6px;
+                font-size: 11px;
+            }}
+            QProgressBar::chunk {{
+                background-color: {Theme.BLUE};
+                border-radius: 4px;
+            }}
+            QProgressDialog {{
+                background-color: {Theme.BASE};
+                color: {Theme.TEXT};
+            }}
+
+            /* ═══ Spin Box ═══════════════════════════ */
+
             QSpinBox, QDoubleSpinBox {{
                 background-color: {Theme.SURFACE0};
                 color: {Theme.TEXT};
                 border: 1px solid {Theme.SURFACE1};
-                border-radius: {Theme.CORNER_RADIUS};
+                border-radius: 4px;
                 padding: 6px;
             }}
             QSpinBox:focus, QDoubleSpinBox:focus {{
-                border: 1px solid {Theme.ACCENT};
+                border: 1px solid {Theme.MAUVE};
             }}
             QSpinBox::up-button, QDoubleSpinBox::up-button,
             QSpinBox::down-button, QDoubleSpinBox::down-button {{
@@ -384,8 +469,9 @@ class Theme:
             QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {{
                 background-color: {Theme.SURFACE2};
             }}
-            
-            /* Slider */
+
+            /* ═══ Slider ═════════════════════════════ */
+
             QSlider::groove:horizontal {{
                 border: none;
                 height: 4px;
@@ -393,67 +479,77 @@ class Theme:
                 border-radius: 2px;
             }}
             QSlider::handle:horizontal {{
-                background: {Theme.ACCENT};
+                background: {Theme.MAUVE};
                 width: 14px;
                 margin: -5px 0;
                 border-radius: 7px;
             }}
             QSlider::handle:horizontal:hover {{
-                background: {Theme.ACCENT_HOVER};
+                background: {Theme.LAVENDER};
             }}
-            
-            /* Tab Widget */
+
+            /* ═══ Tabs ═══════════════════════════════ */
+
             QTabWidget::pane {{
                 border: 1px solid {Theme.SURFACE1};
-                background-color: {Theme.MANTLE};
-                border-radius: {Theme.CORNER_RADIUS};
+                background-color: {Theme.BASE};
+                border-radius: 0px;
             }}
             QTabBar::tab {{
-                background-color: {Theme.SURFACE0};
-                color: {Theme.SUBTEXT0};
-                padding: 10px 20px;
-                margin-right: 2px;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
+                background-color: {Theme.CRUST};
+                color: {Theme.OVERLAY2};
+                padding: 8px 16px;
+                margin-right: 0px;
+                border: none;
+                border-top-left-radius: 0px;
+                border-top-right-radius: 0px;
             }}
             QTabBar::tab:selected {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.ACCENT};
+                background-color: {Theme.BASE};
+                color: {Theme.TEXT};
+                border-top: 1px solid {Theme.MAUVE};
             }}
             QTabBar::tab:hover:!selected {{
-                background-color: {Theme.SURFACE1};
+                background-color: {Theme.MANTLE};
             }}
-            
-            /* Checkbox & Radio */
+
+            /* ═══ Checkbox & Radio ═══════════════════ */
+
             QCheckBox, QRadioButton {{
                 color: {Theme.TEXT};
                 spacing: 8px;
+                font-size: 13px;
             }}
             QCheckBox::indicator, QRadioButton::indicator {{
-                width: 18px;
-                height: 18px;
+                width: 16px;
+                height: 16px;
                 background-color: {Theme.SURFACE0};
-                border: 2px solid {Theme.SURFACE2};
+                border: 1px solid {Theme.SURFACE1};
             }}
             QCheckBox::indicator {{
-                border-radius: 4px;
+                border-radius: 3px;
             }}
             QRadioButton::indicator {{
-                border-radius: 9px;
+                border-radius: 8px;
             }}
             QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
-                background-color: {Theme.ACCENT};
-                border-color: {Theme.ACCENT};
+                background-color: {Theme.BLUE};
+                border-color: {Theme.BLUE};
             }}
             QCheckBox::indicator:hover, QRadioButton::indicator:hover {{
-                border-color: {Theme.OVERLAY0};
+                border-color: {Theme.MAUVE};
             }}
-            
-            /* Group Box */
+            QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {{
+                background-color: {Theme.SURFACE0};
+                border-color: {Theme.OVERLAY1};
+            }}
+
+            /* ═══ Group Box ══════════════════════════ */
+
             QGroupBox {{
                 color: {Theme.TEXT};
                 border: 1px solid {Theme.SURFACE1};
-                border-radius: {Theme.CORNER_RADIUS};
+                border-radius: 6px;
                 margin-top: 10px;
                 padding-top: 10px;
             }}
@@ -461,51 +557,53 @@ class Theme:
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 5px;
-                color: {Theme.SUBTEXT1};
+                color: {Theme.SUBTEXT0};
+                font-size: 11px;
             }}
-            
-            /* Tool Tip */
+
+            /* ═══ Tooltip ════════════════════════════ */
+
             QToolTip {{
                 background-color: {Theme.SURFACE1};
                 color: {Theme.TEXT};
                 border: 1px solid {Theme.SURFACE2};
                 border-radius: 4px;
-                padding: 5px;
+                padding: 4px 8px;
+                font-size: 12px;
             }}
-            
-            /* Status Bar */
+
+            /* ═══ Status Bar ═════════════════════════ */
+
             QStatusBar {{
-                background-color: {Theme.MANTLE};
-                color: {Theme.SUBTEXT0};
+                background-color: {Theme.CRUST};
+                color: {Theme.SUBTEXT1};
+                font-size: 11px;
             }}
-            
-            /* Input Dialog */
-            QInputDialog {{
-                background-color: {Theme.MANTLE};
-            }}
-            
-            /* List Widget */
+
+            /* ═══ List Widget ════════════════════════ */
+
             QListWidget {{
-                background-color: {Theme.MANTLE};
-                alternate-background-color: {Theme.SURFACE0};
+                background-color: {Theme.BASE};
+                alternate-background-color: {Theme.MANTLE};
                 color: {Theme.TEXT};
-                border: 1px solid {Theme.SURFACE0};
-                border-radius: {Theme.CORNER_RADIUS};
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: 6px;
                 outline: none;
             }}
             QListWidget::item {{
                 padding: 8px;
-                border-radius: 4px;
+                border-radius: 0px;
             }}
             QListWidget::item:selected {{
                 background-color: {Theme.SURFACE1};
-                color: {Theme.ACCENT};
+                color: {Theme.TEXT};
             }}
             QListWidget::item:hover {{
                 background-color: {Theme.SURFACE0};
             }}
-            
-            /* Dialog Button Box */
+
+            /* ═══ Dialog Button Box ══════════════════ */
+
             QDialogButtonBox {{
                 button-layout: 3;
             }}

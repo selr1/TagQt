@@ -9,6 +9,8 @@ from PIL import Image
 import io
 
 class MetadataHandler:
+    """Reads and writes audio file metadata tags across MP3, FLAC, OGG, M4A formats."""
+
     def __init__(self, filepath):
         self.filepath = filepath
         self.audio = None
@@ -198,7 +200,7 @@ class MetadataHandler:
             
         try:
             # ID3 (MP3)
-            if isinstance(self.audio, (ID3, EasyID3)) or hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3)):
+            if isinstance(self.audio, (ID3, EasyID3)) or (hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3))):
                 tags = self.audio if isinstance(self.audio, ID3) else self.audio.tags
                 if tags:
                     for key in tags.keys():
@@ -227,7 +229,7 @@ class MetadataHandler:
 
         try:
             # ID3 (MP3)
-            if isinstance(self.audio, (ID3, EasyID3)) or hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3)):
+            if isinstance(self.audio, (ID3, EasyID3)) or (hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3))):
                 tags = self.audio if isinstance(self.audio, ID3) else self.audio.tags
                 if tags is not None:
                     # Remove existing
@@ -397,7 +399,7 @@ class MetadataHandler:
 
         try:
             # ID3 (MP3)
-            if isinstance(self.audio, (ID3, EasyID3)) or hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3)):
+            if isinstance(self.audio, (ID3, EasyID3)) or (hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3))):
                 tags = self.audio if isinstance(self.audio, ID3) else self.audio.tags
                 if tags is not None:
                     # Remove existing

@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLineEdit, 
     QPushButton, QLabel, QHBoxLayout, QScrollArea, QFrame,
-    QBoxLayout
+    QBoxLayout, QTextEdit
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
@@ -28,6 +28,7 @@ class Sidebar(QWidget):
         self.setObjectName("Sidebar")
         self._current_res = ""
         self._current_specs = ""
+        self.is_global_mode = False
         self.setup_ui()
 
     def setup_ui(self):
@@ -57,7 +58,7 @@ class Sidebar(QWidget):
         self.cover_label.setFixedSize(200, 200)
         self.cover_label.setStyleSheet(f"background-color: {Theme.SURFACE0}; border-radius: {Theme.CORNER_RADIUS};")
         self.cover_label.setAlignment(Qt.AlignCenter)
-        self.cover_label.setText("No Cover")
+        self.cover_label.setText("No cover")
         
         cover_container = QHBoxLayout()
         cover_container.addStretch()
@@ -94,9 +95,10 @@ class Sidebar(QWidget):
         layout.addLayout(form_layout)
         
         # Collapsible Extended Metadata
-        self.toggle_btn = QPushButton("Show More")
+        self.toggle_btn = QPushButton("Show More Fields")
         self.toggle_btn.setCheckable(True)
         self.toggle_btn.setStyleSheet(f"background-color: {Theme.SURFACE0}; color: {Theme.SUBTEXT0}; text-align: left; padding: 8px;")
+        self.toggle_btn.setToolTip("Show or hide extra metadata fields")
         self.toggle_btn.clicked.connect(self.toggle_extended)
         layout.addWidget(self.toggle_btn)
         
@@ -134,9 +136,8 @@ class Sidebar(QWidget):
         self.lyrics_label.setStyleSheet(f"font-weight: bold; color: {Theme.SUBTEXT0}; margin-top: 10px;")
         layout.addWidget(self.lyrics_label)
         
-        from PySide6.QtWidgets import QTextEdit
         self.lyrics_edit = QTextEdit()
-        self.lyrics_edit.setPlaceholderText("Lyrics will appear here...")
+        self.lyrics_edit.setPlaceholderText("Lyrics will show up here…")
         self.lyrics_edit.setMinimumHeight(150) # Ensure it has height
         self.lyrics_edit.setStyleSheet(f"""
             QTextEdit {{
@@ -163,12 +164,14 @@ class Sidebar(QWidget):
         self.romanize_btn = QPushButton("Romanize Lyrics")
         self.romanize_btn.setProperty("class", "secondary")
         self.romanize_btn.setCursor(Qt.PointingHandCursor)
+        self.romanize_btn.setToolTip("Convert Korean/CJK lyrics to romanized text")
         self.romanize_btn.clicked.connect(self.romanize_clicked.emit)
         self.romanize_layout.addWidget(self.romanize_btn)
         
         self.reencode_btn = QPushButton("Re-encode FLAC")
         self.reencode_btn.setProperty("class", "secondary")
         self.reencode_btn.setCursor(Qt.PointingHandCursor)
+        self.reencode_btn.setToolTip("Re-encode selected FLAC files to 24-bit 48kHz")
         self.reencode_btn.clicked.connect(self.reencode_flac_clicked.emit)
         # Always visible or controlled by logic, but user requested it for single edit too
         self.reencode_btn.setVisible(True) 
@@ -181,12 +184,14 @@ class Sidebar(QWidget):
         self.lyrics_btn = QPushButton("Get Lyrics")
         self.lyrics_btn.setProperty("class", "secondary")
         self.lyrics_btn.setCursor(Qt.PointingHandCursor)
+        self.lyrics_btn.setToolTip("Search for lyrics online")
         self.lyrics_btn.clicked.connect(self.lyrics_clicked.emit)
         lyrics_btn_layout.addWidget(self.lyrics_btn)
         
         self.load_lyrics_btn = QPushButton("Load Lyrics")
         self.load_lyrics_btn.setProperty("class", "secondary")
         self.load_lyrics_btn.setCursor(Qt.PointingHandCursor)
+        self.load_lyrics_btn.setToolTip("Load lyrics from a file on your computer")
         self.load_lyrics_btn.clicked.connect(self.load_lyrics_clicked.emit)
         lyrics_btn_layout.addWidget(self.load_lyrics_btn)
         actions_layout.addLayout(lyrics_btn_layout)
@@ -196,12 +201,14 @@ class Sidebar(QWidget):
         self.cover_btn = QPushButton("Get Cover")
         self.cover_btn.setProperty("class", "secondary")
         self.cover_btn.setCursor(Qt.PointingHandCursor)
+        self.cover_btn.setToolTip("Search for album artwork online")
         self.cover_btn.clicked.connect(self.cover_clicked.emit)
         cover_btn_layout.addWidget(self.cover_btn)
         
         self.load_cover_btn = QPushButton("Load Cover")
         self.load_cover_btn.setProperty("class", "secondary")
         self.load_cover_btn.setCursor(Qt.PointingHandCursor)
+        self.load_cover_btn.setToolTip("Load cover art from a file on your computer")
         self.load_cover_btn.clicked.connect(self.load_cover_clicked.emit)
         cover_btn_layout.addWidget(self.load_cover_btn)
         actions_layout.addLayout(cover_btn_layout)
@@ -255,8 +262,9 @@ class Sidebar(QWidget):
         main_layout.addLayout(bottom_layout)
 
     def toggle_extended(self, checked):
+        """Show or hide extended metadata fields."""
         self.extended_widget.setVisible(checked)
-        self.toggle_btn.setText("Hide" if checked else "Show More")
+        self.toggle_btn.setText("Show fewer fields" if checked else "Show more fields")
 
     def apply_theme(self):
         self.cover_label.setStyleSheet(f"background-color: {Theme.SURFACE0}; border-radius: {Theme.CORNER_RADIUS};")
@@ -298,7 +306,7 @@ class Sidebar(QWidget):
             self._current_res = f"{pixmap.width()}x{pixmap.height()}"
         else:
             self.cover_label.setPixmap(QPixmap())
-            self.cover_label.setText("No Cover")
+            self.cover_label.setText("No cover")
             self._current_res = ""
             
         self._update_info_label()

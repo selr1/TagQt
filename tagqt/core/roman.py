@@ -1,4 +1,5 @@
 class Romanizer:
+    """Converts Korean/CJK text to romanized form using koroman."""
     @staticmethod
     def romanize_text(text):
         if not text:

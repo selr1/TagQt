@@ -32,7 +32,7 @@ class BatchStatusDialog(QDialog):
         layout.setSpacing(20)
         
         # Header
-        self.status_label = QLabel("Processing...")
+        self.status_label = QLabel("Starting\u2026")
         self.status_label.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {Theme.TEXT};")
         layout.addWidget(self.status_label)
         
@@ -84,9 +84,9 @@ class BatchStatusDialog(QDialog):
         self.progress_bar.setRange(0, total)
         self.progress_bar.setValue(current)
         percent = int((current / total) * 100) if total > 0 else 0
-        self.status_label.setText(f"Processing {current}/{total} ({percent}%)")
+        self.status_label.setText(f"{current} of {total} \u00b7 {percent}%")
     def set_finished(self):
-        self.status_label.setText("Operation Completed")
+        self.status_label.setText("All done.")
         self.progress_bar.setValue(self.progress_bar.maximum())
 
     def add_result(self, filepath, status, details):
@@ -110,7 +110,7 @@ class BatchStatusDialog(QDialog):
         
         from PySide6.QtGui import QColor
         if status == "Success" or status == "Found" or status == "Updated":
-            item.setForeground(1, QColor("#4ade80"))
+            item.setForeground(1, QColor(Theme.SUCCESS))
         elif status == "Error" or status == "Missing":
             item.setForeground(1, QColor(Theme.RED))
         elif status == "Skipped":

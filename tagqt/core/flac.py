@@ -5,6 +5,7 @@ import tempfile
 
 
 class FlacEncoder:
+    """Handles FLAC re-encoding to 24-bit 48kHz using ffmpeg."""
     
     @staticmethod
     def is_flac_available():
@@ -106,6 +107,7 @@ class FlacEncoder:
 
 
 class DependencyChecker:
+    """Checks availability of optional external dependencies."""
     
     @staticmethod
     def check_koroman():

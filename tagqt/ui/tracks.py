@@ -3,6 +3,9 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
 import os
 from tagqt.core.tags import MetadataHandler
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FileList(QTreeWidget):
     files_dropped = Signal(list)
@@ -66,6 +69,8 @@ class FileList(QTreeWidget):
         if files:
             self.files_dropped.emit(files)
             event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def add_file(self, path):
         try:
@@ -73,7 +78,7 @@ class FileList(QTreeWidget):
             self.all_files.append((path, meta))
             self.refresh_view()
         except Exception as e:
-            print(f"Error adding file {path}: {e}")
+            logger.warning("Error adding file %s: %s", path, e)
 
     def add_files(self, data):
         """Accepts either a list of paths or a list of (path, metadata) tuples/lists."""
@@ -86,7 +91,7 @@ class FileList(QTreeWidget):
                     meta = MetadataHandler(path)
                 self.all_files.append((path, meta))
             except Exception as e:
-                print(f"Error adding file: {e}")
+                logger.warning("Error adding file: %s", e)
         self.refresh_view()
 
     def clear_files(self):
@@ -134,6 +139,15 @@ class FileList(QTreeWidget):
         item.setTextAlignment(8, Qt.AlignCenter)  # Track
 
     def refresh_view(self):
+        """Rebuild the tree view from internal data using current display mode."""
+        self.setUpdatesEnabled(False)
+        try:
+            self._do_refresh_view()
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def _do_refresh_view(self):
+        """Internal refresh without update guard."""
         self.clear()
         self.path_to_item = {}
         
@@ -194,7 +208,7 @@ class FileList(QTreeWidget):
                     else:
                         self.refresh_view()
                 except Exception as e:
-                    print(f"Error updating file {path}: {e}")
+                    logger.warning("Error updating file %s: %s", path, e)
                 break
 
     def rename_file(self, old_path, new_path):
@@ -214,5 +228,5 @@ class FileList(QTreeWidget):
                     else:
                         self.refresh_view()
                 except Exception as e:
-                    print(f"Error loading renamed file {new_path}: {e}")
+                    logger.warning("Error loading renamed file %s: %s", new_path, e)
                 break

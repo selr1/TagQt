@@ -1,213 +1,251 @@
-name: Release Build
+name: Build & Release
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+  build-windows:
+    name: Build Windows Executable
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Print debug info
+        run: |
+          echo "Tag: ${{ github.ref_name }}"
+          python --version
+        shell: bash
+
+      - name: Verify icon assets
+        run: |
+          $icons = @(
+            "assets\logo.ico",
+            "assets\logo.png",
+            "assets\logo_16.png",
+            "assets\logo_32.png",
+            "assets\logo_48.png",
+            "assets\logo_64.png",
+            "assets\logo_128.png",
+            "assets\logo_256.png",
+            "assets\logo_512.png",
+            "assets\logo.svg"
+          )
+          $missing = $false
+          foreach ($f in $icons) {
+            if (Test-Path $f) {
+              Write-Host "OK: $f"
+            } else {
+              Write-Host "MISSING: $f"
+              $missing = $true
+            }
+          }
+          if ($missing) { exit 1 }
+        shell: pwsh
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -r requirements.txt
           pip install pyinstaller
-          # Install core dependencies
-          pip install PySide6 mutagen Pillow requests musicbrainzngs pytest
-          # Install optional dependencies that may fail on some platforms
-          pip install koroman || true
         shell: bash
 
-      - name: Verify dependencies installation
+      - name: Build with PyInstaller
         run: |
-          python -c "import sys; print(f'Python version: {sys.version}')"
-          pip list
-        shell: bash
-
-      - name: Build with PyInstaller (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          pyinstaller --onefile --windowed --name tagqt --collect-all PySide6 --collect-all mutagen --collect-all Pillow main.py
-          dir dist
+          pyinstaller --onefile --windowed ^
+            --name "TagQt" ^
+            --icon "assets\logo.ico" ^
+            --add-data "assets;assets" ^
+            --add-data "tagqt\ui\assets;tagqt\ui\assets" ^
+            --strip ^
+            main.py
         shell: cmd
 
-      - name: Verify Windows build
-        if: runner.os == 'Windows'
+      - name: Rename output
         run: |
-          if not exist "dist\tagqt.exe" (
-            echo Build failed: tagqt.exe not found
-            exit /b 1
-          )
-          echo Build successful: tagqt.exe created
+          move "dist\TagQt.exe" "dist\TagQt-windows-${{ github.ref_name }}.exe"
         shell: cmd
 
-      - name: Build with PyInstaller (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          pyinstaller --onefile --windowed --name tagqt --collect-all PySide6 --collect-all mutagen --collect-all Pillow main.py
-          chmod +x dist/tagqt
-          ls -lh dist/
-
-      - name: Create AppImage (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          # Install ImageMagick for icon creation
-          sudo apt-get update && sudo apt-get install -y imagemagick
-          
-          # Download linuxdeploy
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy*.AppImage
-          
-          # Create AppDir structure
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/share/applications
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-          
-          # Copy binary
-          cp dist/tagqt AppDir/usr/bin/
-          
-          # Create desktop entry (no leading whitespace - required for AppImage)
-          printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=TagQt' 'Exec=tagqt' 'Icon=tagqt' 'Categories=Audio;AudioVideo;' > AppDir/usr/share/applications/tagqt.desktop
-          
-          # Create a simple icon (placeholder)
-          echo "Creating placeholder icon"
-          convert -size 256x256 xc:blue AppDir/usr/share/icons/hicolor/256x256/apps/tagqt.png
-          
-          # Build AppImage - no need for qt plugin since PyInstaller bundles Qt
-          export OUTPUT=tagqt.AppImage
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
-          
-          # Move to dist folder
-          mv tagqt*.AppImage dist/tagqt.AppImage
-          chmod +x dist/tagqt.AppImage
-          ls -lh dist/
-
-      - name: Verify Linux build
-        if: runner.os == 'Linux'
-        run: |
-          if [ ! -f "dist/tagqt.AppImage" ]; then
-            echo "Build failed: tagqt.AppImage not found"
-            exit 1
-          fi
-          echo "Build successful: tagqt.AppImage created"
-
-      - name: Build with PyInstaller (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          pyinstaller --onefile --windowed --name tagqt --collect-all PySide6 --collect-all mutagen --collect-all Pillow main.py
-          ls -lh dist/
-
-      - name: Verify macOS build
-        if: runner.os == 'macOS'
-        run: |
-          if [ ! -d "dist/tagqt.app" ] && [ ! -f "dist/tagqt" ]; then
-            echo "Build failed: tagqt application not found"
-            exit 1
-          fi
-          echo "Build successful: tagqt application created"
-
-      - name: Prepare artifacts (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          copy dist\tagqt.exe tagqt-windows.exe
-        shell: cmd
-
-      - name: Prepare artifacts (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cp dist/tagqt.AppImage tagqt-linux.AppImage
-
-      - name: Prepare artifacts (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          # Create a zip of the .app bundle if it exists, otherwise use the binary
-          if [ -d "dist/tagqt.app" ]; then
-            cd dist && zip -r ../tagqt-macos.zip tagqt.app && cd ..
-            echo "APP_BUNDLE=true" >> $GITHUB_ENV
-          else
-            cp dist/tagqt tagqt-macos
-            echo "APP_BUNDLE=false" >> $GITHUB_ENV
-          fi
-
-      - name: Upload artifacts (Windows)
-        if: runner.os == 'Windows'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tagqt-windows
-          path: tagqt-windows.exe
+          name: windows-build
+          path: dist/TagQt-windows-${{ github.ref_name }}.exe
+          if-no-files-found: error
 
-      - name: Upload artifacts (Linux)
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: tagqt-linux
-          path: tagqt-linux.AppImage
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-22.04
 
-      - name: Upload artifacts (macOS - App Bundle)
-        if: ${{ runner.os == 'macOS' && env.APP_BUNDLE == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: tagqt-macos
-          path: tagqt-macos.zip
-
-      - name: Upload artifacts (macOS - Binary)
-        if: ${{ runner.os == 'macOS' && env.APP_BUNDLE == 'false' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: tagqt-macos
-          path: tagqt-macos
-
-  release:
-    name: Create Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Print debug info
+        run: |
+          echo "Tag: ${{ github.ref_name }}"
+          python3 --version
+
+      - name: Verify icon assets
+        run: |
+          for f in \
+            assets/logo.ico \
+            assets/logo.png \
+            assets/logo_16.png \
+            assets/logo_32.png \
+            assets/logo_48.png \
+            assets/logo_64.png \
+            assets/logo_128.png \
+            assets/logo_256.png \
+            assets/logo_512.png \
+            assets/logo.svg; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            else
+              echo "OK: $f"
+            fi
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxkbcommon-x11-0 \
+            libgl1 \
+            libegl1 \
+            libfontconfig1 \
+            libdbus-1-3 \
+            libxcb-xkb1 \
+            fuse
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onedir \
+            --name "TagQt" \
+            --add-data "assets:assets" \
+            --add-data "tagqt/ui/assets:tagqt/ui/assets" \
+            --strip \
+            main.py
+
+      - name: Create AppDir structure
+        run: |
+          mkdir -p TagQt.AppDir/usr/bin
+          cp -r dist/TagQt/* TagQt.AppDir/usr/bin/
+
+          # Root icon (required by AppImage spec — must match Icon= in .desktop)
+          cp assets/logo_256.png TagQt.AppDir/logo.png
+          cp assets/logo_256.png TagQt.AppDir/TagQt.png
+
+          # Icon hierarchy for system integration
+          for size in 16 32 48 64 128 256 512; do
+            dir="TagQt.AppDir/usr/share/icons/hicolor/${size}x${size}/apps"
+            mkdir -p "$dir"
+            cp "assets/logo_${size}.png" "$dir/logo.png"
+          done
+          mkdir -p TagQt.AppDir/usr/share/icons/hicolor/scalable/apps
+          cp assets/logo.svg TagQt.AppDir/usr/share/icons/hicolor/scalable/apps/logo.svg
+
+          # Create .desktop file
+          cat > TagQt.AppDir/TagQt.desktop << 'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=TagQt
+          Exec=TagQt
+          Icon=logo
+          Categories=Audio;AudioVideo;Music;
+          Comment=A music metadata editor built with Python and Qt
+          EOF
+          sed -i 's/^          //' TagQt.AppDir/TagQt.desktop
+
+          # Create AppRun
+          cat > TagQt.AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/bin:${LD_LIBRARY_PATH}"
+          exec "${HERE}/usr/bin/TagQt" "$@"
+          EOF
+          chmod +x TagQt.AppDir/AppRun
+
+      - name: Download appimagetool
+        run: |
+          wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 ./appimagetool --no-appstream TagQt.AppDir "TagQt-linux-${{ github.ref_name }}.AppImage"
+          chmod +x "TagQt-linux-${{ github.ref_name }}.AppImage"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: TagQt-linux-${{ github.ref_name }}.AppImage
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux]
+
+    steps:
+      - name: Download Windows build
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: windows-build
+          path: release-assets/
 
-      - name: Display structure of downloaded artifacts
-        run: |
-          ls -R artifacts/
-
-      - name: Prepare release assets
-        run: |
-          mkdir -p release_assets
-          find artifacts -type f -exec cp {} release_assets/ \;
-          ls -lh release_assets/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Download Linux build
+        uses: actions/download-artifact@v4
         with:
-          files: release_assets/*
-          draft: false
-          prerelease: false
+          name: linux-build
+          path: release-assets/
+
+      - name: List release assets
+        run: ls -la release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: TagQt ${{ github.ref_name }}
           generate_release_notes: true
+          make_latest: true
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

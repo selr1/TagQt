@@ -29,7 +29,7 @@ class CommandPalette(QDialog):
         layout.setSpacing(8)
         
         self.input = QLineEdit()
-        self.input.setPlaceholderText("Type a command...")
+        self.input.setPlaceholderText("Search commands…")
         self.input.textChanged.connect(self.on_filter)
         self.input.returnPressed.connect(self.execute_selected)
         self.input.setStyleSheet(f"""

@@ -1,4 +1,5 @@
 class CaseConverter:
+    """Provides static methods for text case conversion."""
     @staticmethod
     def to_title_case(text):
         if not text: return ""
