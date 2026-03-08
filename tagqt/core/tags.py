@@ -494,13 +494,33 @@ class MetadataHandler:
                     for k in to_del:
                         del tags[k]
                     
-                    tags.add(APIC(
-                        encoding=3,
-                        mime='image/jpeg',
-                        type=3,
-                        desc='Cover',
-                        data=data
-                    ))
+                    from mutagen.easyid3 import EasyID3 as _EasyID3
+                    from mutagen.id3 import APIC, ID3
+
+                    if isinstance(self.audio, _EasyID3):
+                        # EasyID3 does not support .add() — access the underlying ID3 object
+                        try:
+                            id3 = ID3(self.audio.filename)
+                            id3.delall('APIC')
+                            id3.add(APIC(
+                                encoding=3,
+                                mime='image/jpeg',
+                                type=3,
+                                desc='Cover',
+                                data=data
+                            ))
+                            id3.save(self.audio.filename)
+                        except Exception as e:
+                            print(f"[TagQt] Warning: could not save cover art to MP3: {e}")
+                    else:
+                        # FLAC, OGG, M4A — existing path, do not change
+                        tags.add(APIC(
+                            encoding=3,
+                            mime='image/jpeg',
+                            type=3,
+                            desc='Cover',
+                            data=data
+                        ))
             
             # FLAC
             elif isinstance(self.audio, (FLAC, OggVorbis)):
