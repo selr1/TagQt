@@ -490,7 +490,9 @@ jobs:
 
       - name: Create AppRun
         run: |
-          cat > TagQt.AppDir/AppRun << 'APPRUN'
+          python3 << 'PYEOF'
+          import os, textwrap
+          content = textwrap.dedent("""\
           #!/bin/bash
           SELF=$(readlink -f "$0")
           HERE=${SELF%/*}
@@ -498,17 +500,17 @@ jobs:
 
           export PATH="${HERE}/usr/bin:${PATH}"
           export LD_LIBRARY_PATH="${HERE}/usr/bin:${INTERNAL}:${INTERNAL}/PySide6/Qt/lib:${LD_LIBRARY_PATH}"
-
-          # Point Qt to its own bundled plugins inside the AppImage
           export QT_PLUGIN_PATH="${INTERNAL}/PySide6/Qt/plugins"
-
-          # Force Qt6 Multimedia to use the bundled FFmpeg backend
           export QT_MEDIA_BACKEND=ffmpeg
 
           exec "${HERE}/usr/bin/TagQt" "$@"
-          APPRUN
-          sed -i 's/^          //' TagQt.AppDir/AppRun
-          chmod +x TagQt.AppDir/AppRun
+          """)
+          with open("TagQt.AppDir/AppRun", "w") as f:
+              f.write(content)
+          os.chmod("TagQt.AppDir/AppRun", 0o755)
+          print("AppRun written:")
+          print(content)
+          PYEOF
 
       - name: Create AppStream metadata
         run: |
