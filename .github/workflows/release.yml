@@ -85,8 +85,14 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile flac-win.zip
           Expand-Archive -Path flac-win.zip -DestinationPath flac-win
           $exe = Get-ChildItem -Recurse -Filter "flac.exe" flac-win | Select-Object -First 1
+          $dir = $exe.DirectoryName
           Copy-Item $exe.FullName -Destination "flac.exe"
-          Write-Host "flac.exe found and copied: $(Get-Item flac.exe).Length bytes"
+          # Copy all DLLs from the same directory as flac.exe
+          Get-ChildItem -Path $dir -Filter "*.dll" | ForEach-Object {
+            Copy-Item $_.FullName -Destination $_.Name
+            Write-Host "Copied DLL: $($_.Name)"
+          }
+          Write-Host "flac.exe size: $((Get-Item flac.exe).Length) bytes"
         shell: pwsh
 
       - name: Inject version into app
@@ -103,6 +109,8 @@ jobs:
             --add-data "assets;assets" ^
             --add-data "tagqt\ui\assets;tagqt\ui\assets" ^
             --add-binary "flac.exe;." ^
+            --add-binary "libFLAC.dll;." ^
+            --add-binary "libogg.dll;." ^
             --hidden-import PySide6.QtCore ^
             --hidden-import PySide6.QtWidgets ^
             --hidden-import PySide6.QtGui ^

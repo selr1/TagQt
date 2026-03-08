@@ -106,7 +106,6 @@ class FlacEncoder:
                     binary,
                     "--best",
                     "--force",
-                    "--keep-foreign-metadata",
                     "--silent",
                     "--endian", "little",
                     "--sign", "signed",
