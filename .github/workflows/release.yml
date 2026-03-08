@@ -258,55 +258,58 @@ jobs:
 
           # Create .desktop file
           cat > TagQt.AppDir/TagQt.desktop << EOF
-[Desktop Entry]
-Type=Application
-Name=TagQt
-GenericName=Music Tag Editor
-Exec=TagQt
-Icon=logo
-Categories=Audio;AudioVideo;Music;
-Comment=A music metadata editor built with Python and Qt
-Keywords=music;tag;metadata;mp3;flac;audio;
-Version=${{ steps.version.outputs.VERSION }}
-EOF
+          [Desktop Entry]
+          Type=Application
+          Name=TagQt
+          GenericName=Music Tag Editor
+          Exec=TagQt
+          Icon=logo
+          Categories=Audio;AudioVideo;Music;
+          Comment=A music metadata editor built with Python and Qt
+          Keywords=music;tag;metadata;mp3;flac;audio;
+          Version=${{ steps.version.outputs.VERSION }}
+          EOF
+          sed -i 's/^          //' TagQt.AppDir/TagQt.desktop
 
           # Create AppRun
           cat > TagQt.AppDir/AppRun << 'APPRUN'
-#!/bin/bash
-SELF=$(readlink -f "$0")
-HERE=${SELF%/*}
-export PATH="${HERE}/usr/bin:${PATH}"
-export LD_LIBRARY_PATH="${HERE}/usr/bin:${LD_LIBRARY_PATH}"
-exec "${HERE}/usr/bin/TagQt" "$@"
-APPRUN
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/bin:${LD_LIBRARY_PATH}"
+          exec "${HERE}/usr/bin/TagQt" "$@"
+          APPRUN
+          sed -i 's/^          //' TagQt.AppDir/AppRun
           chmod +x TagQt.AppDir/AppRun
 
       - name: Create AppStream metadata
         run: |
           mkdir -p TagQt.AppDir/usr/share/metainfo
           cat > TagQt.AppDir/usr/share/metainfo/tagqt.appdata.xml << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop-application">
-  <id>io.github.selr1.tagqt</id>
-  <name>TagQt</name>
-  <summary>A music metadata editor built with Python and Qt</summary>
-  <metadata_license>MIT</metadata_license>
-  <project_license>MIT</project_license>
-  <description>
-    <p>
-      TagQt lets you edit audio file metadata without the bloat.
-      Edit tags one at a time or in bulk, fetch lyrics and album
-      art automatically, auto-tag from MusicBrainz, and more.
-    </p>
-  </description>
-  <releases>
-    <release version="${{ steps.version.outputs.VERSION }}"
-             date="$(date -u +%Y-%m-%d)"/>
-  </releases>
-  <url type="homepage">https://github.com/selr1/tagqt</url>
-  <url type="bugtracker">https://github.com/selr1/tagqt/issues</url>
-</component>
-EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <component type="desktop-application">
+            <id>io.github.selr1.tagqt</id>
+            <name>TagQt</name>
+            <summary>A music metadata editor built with Python and Qt</summary>
+            <metadata_license>MIT</metadata_license>
+            <project_license>MIT</project_license>
+            <description>
+              <p>
+                TagQt lets you edit audio file metadata without the bloat.
+                Edit tags one at a time or in bulk, fetch lyrics and album
+                art automatically, auto-tag from MusicBrainz, and more.
+              </p>
+            </description>
+            <releases>
+              <release version="${{ steps.version.outputs.VERSION }}"
+                       date="$(date -u +%Y-%m-%d)"/>
+            </releases>
+            <url type="homepage">https://github.com/selr1/tagqt</url>
+            <url type="bugtracker">https://github.com/selr1/tagqt/issues</url>
+          </component>
+          EOF
+          sed -i 's/^          //' TagQt.AppDir/usr/share/metainfo/tagqt.appdata.xml
 
       - name: Download appimagetool
         run: |
