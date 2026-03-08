@@ -25,7 +25,15 @@ def _set_comment(id3, _, value):
 def _delete_comment(id3, _):
     id3.delall('COMM')
 
-EasyID3.RegisterKey('comment', _get_comment, _set_comment, _delete_comment)
+try:
+    EasyID3.RegisterKey('comment', _get_comment, _set_comment, _delete_comment)
+except Exception:
+    pass
+
+try:
+    EasyID3.RegisterTextKey('initialkey', 'TKEY')
+except Exception:
+    pass
 
 class MetadataHandler:
     """Reads and writes audio file metadata tags across MP3, FLAC, OGG, M4A formats."""
@@ -55,12 +63,15 @@ class MetadataHandler:
 
     def set_tag(self, tag, value):
         if self.audio:
-            if isinstance(value, list):
-                # Deduplicate while preserving order
-                deduped = list(dict.fromkeys(str(v) for v in value))
-                self.audio[tag] = deduped
-            else:
-                self.audio[tag] = [str(value)]
+            try:
+                if isinstance(value, list):
+                    # Deduplicate while preserving order
+                    deduped = list(dict.fromkeys(str(v) for v in value))
+                    self.audio[tag] = deduped
+                else:
+                    self.audio[tag] = [str(value)]
+            except Exception as e:
+                print(f"[TagQt] Warning: could not set tag '{tag}': {e}")
 
     def save(self):
         if self.audio:
@@ -109,7 +120,11 @@ class MetadataHandler:
 
     @property
     def title(self):
-        return self.get_tag('title')
+        try:
+            val = self.get_tag('title')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @title.setter
     def title(self, value):
@@ -117,7 +132,11 @@ class MetadataHandler:
 
     @property
     def artist(self):
-        return self.get_tag('artist')
+        try:
+            val = self.get_tag('artist')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @artist.setter
     def artist(self, value):
@@ -125,7 +144,11 @@ class MetadataHandler:
 
     @property
     def album(self):
-        return self.get_tag('album')
+        try:
+            val = self.get_tag('album')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @album.setter
     def album(self, value):
@@ -133,7 +156,11 @@ class MetadataHandler:
 
     @property
     def year(self):
-        return self.get_tag('date')
+        try:
+            val = self.get_tag('date')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @year.setter
     def year(self, value):
@@ -141,7 +168,11 @@ class MetadataHandler:
 
     @property
     def genre(self):
-        return self.get_tag('genre')
+        try:
+            val = self.get_tag('genre')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @genre.setter
     def genre(self, value):
@@ -149,7 +180,11 @@ class MetadataHandler:
 
     @property
     def track_number(self):
-        return self.get_tag('tracknumber')
+        try:
+            val = self.get_tag('tracknumber')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @track_number.setter
     def track_number(self, value):
@@ -157,13 +192,16 @@ class MetadataHandler:
 
     @property
     def disc_number(self):
-        val = self.get_tag('discnumber')
-        # For FLAC/Ogg, try to combine with total if available and not already in val
-        if self.audio and isinstance(self.audio, (FLAC, OggVorbis)):
-            if '/' not in str(val) and 'DISCTOTAL' in self.audio:
-                total = self.audio['DISCTOTAL'][0]
-                return f"{val}/{total}"
-        return val
+        try:
+            val = self.get_tag('discnumber')
+            # For FLAC/Ogg, try to combine with total if available and not already in val
+            if self.audio and isinstance(self.audio, (FLAC, OggVorbis)):
+                if '/' not in str(val) and 'DISCTOTAL' in self.audio:
+                    total = self.audio['DISCTOTAL'][0]
+                    return f"{val}/{total}"
+            return val if val else ''
+        except Exception:
+            return ''
 
     @disc_number.setter
     def disc_number(self, value):
@@ -194,7 +232,11 @@ class MetadataHandler:
 
     @property
     def album_artist(self):
-        return self.get_tag('albumartist')
+        try:
+            val = self.get_tag('albumartist')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @album_artist.setter
     def album_artist(self, value):
@@ -293,7 +335,11 @@ class MetadataHandler:
 
     @property
     def bpm(self):
-        return self.get_tag('bpm')
+        try:
+            val = self.get_tag('bpm')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @bpm.setter
     def bpm(self, value):
@@ -301,7 +347,11 @@ class MetadataHandler:
 
     @property
     def initial_key(self):
-        return self.get_tag('initialkey')
+        try:
+            val = self.get_tag('initialkey')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @initial_key.setter
     def initial_key(self, value):
@@ -309,7 +359,11 @@ class MetadataHandler:
 
     @property
     def isrc(self):
-        return self.get_tag('isrc')
+        try:
+            val = self.get_tag('isrc')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @isrc.setter
     def isrc(self, value):
@@ -317,7 +371,11 @@ class MetadataHandler:
 
     @property
     def publisher(self):
-        return self.get_tag('organization')
+        try:
+            val = self.get_tag('organization')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @publisher.setter
     def publisher(self, value):
