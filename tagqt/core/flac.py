@@ -107,11 +107,6 @@ class FlacEncoder:
                     "--best",
                     "--force",
                     "--silent",
-                    "--endian", "little",
-                    "--sign", "signed",
-                    "--channels", "2",
-                    "--bps", "32",
-                    "--sample-rate", "48000",
                     "-o", temp_path,
                     filepath
                 ]
