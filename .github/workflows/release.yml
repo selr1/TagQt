@@ -1,0 +1,430 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows Executable
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+        shell: bash
+
+      - name: Extract version (pwsh)
+        id: version_pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "Building version: $version"
+        shell: pwsh
+
+      - name: Print debug info
+        run: |
+          echo "Tag: ${{ github.ref_name }}"
+          python --version
+        shell: bash
+
+      - name: Verify icon assets
+        run: |
+          $icons = @(
+            "assets\logo.ico",
+            "assets\logo.png",
+            "assets\logo_16.png",
+            "assets\logo_32.png",
+            "assets\logo_48.png",
+            "assets\logo_64.png",
+            "assets\logo_128.png",
+            "assets\logo_256.png",
+            "assets\logo_512.png",
+            "assets\logo.svg"
+          )
+          $missing = $false
+          foreach ($f in $icons) {
+            if (Test-Path $f) {
+              Write-Host "OK: $f"
+            } else {
+              Write-Host "MISSING: $f"
+              $missing = $true
+            }
+          }
+          if ($missing) { exit 1 }
+        shell: pwsh
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller certifi
+        shell: bash
+
+      - name: Download flac binary
+        run: |
+          $url = "https://github.com/xiph/flac/releases/download/1.4.3/flac-1.4.3-win.zip"
+          Invoke-WebRequest -Uri $url -OutFile flac-win.zip
+          Expand-Archive -Path flac-win.zip -DestinationPath flac-win
+          Copy-Item "flac-win\flac-1.4.3-win\Win64\flac.exe" -Destination "flac.exe"
+          Copy-Item "flac-win\flac-1.4.3-win\Win64\libFLAC.dll" -Destination "libFLAC.dll"
+          Copy-Item "flac-win\flac-1.4.3-win\Win64\libFLAC++.dll" -Destination "libFLAC++.dll"
+          Write-Host "flac.exe: $((Get-Item flac.exe).Length) bytes"
+          Write-Host "libFLAC.dll: $((Get-Item libFLAC.dll).Length) bytes"
+          Write-Host "libFLAC++.dll: $((Get-Item 'libFLAC++.dll').Length) bytes"
+        shell: pwsh
+
+      - name: Inject version into app
+        run: |
+          $v = "${{ steps.version.outputs.VERSION }}"
+          "__version__ = `"$v`"" | Out-File -FilePath tagqt\version.py -Encoding utf8
+        shell: pwsh
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onedir --windowed ^
+            --name "TagQt" ^
+            --icon "assets\logo.ico" ^
+            --add-data "assets;assets" ^
+            --add-data "tagqt\ui\assets;tagqt\ui\assets" ^
+            --add-binary "flac.exe;." ^
+            --add-binary "libFLAC.dll;." ^
+            --add-binary "libFLAC++.dll;." ^
+            --hidden-import PySide6.QtCore ^
+            --hidden-import PySide6.QtWidgets ^
+            --hidden-import PySide6.QtGui ^
+            --hidden-import PySide6.QtNetwork ^
+            --hidden-import PySide6.QtSvg ^
+            --hidden-import PySide6.QtMultimedia ^
+            --collect-data PySide6 ^
+            --hidden-import tagqt.core.musicbrainz ^
+            --hidden-import tagqt.core.lyric ^
+            --hidden-import tagqt.core.art ^
+            --hidden-import tagqt.core.flac ^
+            --hidden-import tagqt.core.rename ^
+            --hidden-import tagqt.core.csv_io ^
+            --hidden-import tagqt.core.roman ^
+            --hidden-import tagqt.core.case ^
+            --hidden-import tagqt.core.tags ^
+            --hidden-import certifi ^
+            --hidden-import koroman ^
+            --collect-data certifi ^
+            --collect-data koroman ^
+            main.py
+        shell: cmd
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --yes --no-progress
+        shell: pwsh
+
+      - name: Create installer output directory
+        run: |
+          New-Item -ItemType Directory -Force -Path installer_output
+        shell: pwsh
+
+      - name: Build installer
+        run: |
+          $version = "${{ steps.version_pwsh.outputs.VERSION }}"
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc /DMyAppVersion="$version" installer.iss
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Inno Setup failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Verify installer was created
+        run: |
+          $version = "${{ steps.version_pwsh.outputs.VERSION }}"
+          $path = "installer_output\TagQt-windows-$version-setup.exe"
+          if (-not (Test-Path $path)) {
+            Write-Error "Installer not found at $path"
+            exit 1
+          }
+          Write-Host "Installer verified: $path"
+          $size = (Get-Item $path).length / 1MB
+          Write-Host "Size: $([math]::Round($size, 1)) MB"
+        shell: pwsh
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: installer_output/TagQt-windows-${{ steps.version_pwsh.outputs.VERSION }}-setup.exe
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+        shell: bash
+
+      - name: Print debug info
+        run: |
+          echo "Tag: ${{ github.ref_name }}"
+          python3 --version
+
+      - name: Verify icon assets
+        run: |
+          for f in \
+            assets/logo.ico \
+            assets/logo.png \
+            assets/logo_16.png \
+            assets/logo_32.png \
+            assets/logo_48.png \
+            assets/logo_64.png \
+            assets/logo_128.png \
+            assets/logo_256.png \
+            assets/logo_512.png \
+            assets/logo.svg \
+            assets/logo_icon.svg; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            else
+              echo "OK: $f"
+            fi
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxkbcommon-x11-0 \
+            libgl1 \
+            libegl1 \
+            libfontconfig1 \
+            libdbus-1-3 \
+            libxcb-xkb1 \
+            fuse \
+            appstream
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller certifi
+
+      - name: Build static flac binary
+        run: |
+          sudo apt-get install -y \
+            build-essential \
+            libogg-dev \
+            nasm
+          wget -q "https://github.com/xiph/flac/releases/download/1.4.3/flac-1.4.3.tar.xz"
+          tar -xf flac-1.4.3.tar.xz
+          cd flac-1.4.3
+          ./configure \
+            --disable-shared \
+            --enable-static \
+            --disable-oggtest \
+            --disable-xmms-plugin \
+            --disable-rpath
+          make -j$(nproc)
+          cp src/flac/flac ../flac
+          cd ..
+          chmod +x flac
+          echo "Static flac binary built: $(du -sh ./flac)"
+          file ./flac
+          ldd ./flac || true
+
+      - name: Inject version into app
+        run: |
+          echo "__version__ = \"${{ steps.version.outputs.VERSION }}\"" \
+            > tagqt/version.py
+        shell: bash
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onedir \
+            --name "TagQt" \
+            --add-data "assets:assets" \
+            --add-data "tagqt/ui/assets:tagqt/ui/assets" \
+            --add-binary "flac:." \
+            --hidden-import PySide6.QtCore \
+            --hidden-import PySide6.QtWidgets \
+            --hidden-import PySide6.QtGui \
+            --hidden-import PySide6.QtNetwork \
+            --hidden-import PySide6.QtSvg \
+            --hidden-import PySide6.QtMultimedia \
+            --collect-data PySide6 \
+            --hidden-import tagqt.core.musicbrainz \
+            --hidden-import tagqt.core.lyric \
+            --hidden-import tagqt.core.art \
+            --hidden-import tagqt.core.flac \
+            --hidden-import tagqt.core.rename \
+            --hidden-import tagqt.core.csv_io \
+            --hidden-import tagqt.core.roman \
+            --hidden-import tagqt.core.case \
+            --hidden-import koroman \
+            --collect-data koroman \
+            --hidden-import tagqt.core.tags \
+            --hidden-import certifi \
+            --collect-data certifi \
+            --strip \
+            main.py
+
+      - name: Create AppDir structure
+        run: |
+          mkdir -p TagQt.AppDir/usr/bin
+          cp -r dist/TagQt/* TagQt.AppDir/usr/bin/
+
+          # Root icon (required by AppImage spec — must match Icon= in .desktop)
+          cp assets/logo_256.png TagQt.AppDir/logo.png
+          cp assets/logo_256.png TagQt.AppDir/TagQt.png
+
+          # Icon hierarchy for system integration
+          for size in 16 32 48 64 128 256 512; do
+            dir="TagQt.AppDir/usr/share/icons/hicolor/${size}x${size}/apps"
+            mkdir -p "$dir"
+            cp "assets/logo_${size}.png" "$dir/logo.png"
+          done
+          mkdir -p TagQt.AppDir/usr/share/icons/hicolor/scalable/apps
+          cp assets/logo_icon.svg TagQt.AppDir/usr/share/icons/hicolor/scalable/apps/logo.svg
+
+          # Create .desktop file
+          cat > TagQt.AppDir/TagQt.desktop << EOF
+          [Desktop Entry]
+          Type=Application
+          Name=TagQt
+          GenericName=Music Tag Editor
+          Exec=TagQt
+          Icon=logo
+          Categories=Audio;AudioVideo;Music;
+          Comment=A music metadata editor built with Python and Qt
+          Keywords=music;tag;metadata;mp3;flac;audio;
+          EOF
+          sed -i 's/^          //' TagQt.AppDir/TagQt.desktop
+
+          # Create AppRun
+          cat > TagQt.AppDir/AppRun << 'APPRUN'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/bin:${LD_LIBRARY_PATH}"
+          exec "${HERE}/usr/bin/TagQt" "$@"
+          APPRUN
+          sed -i 's/^          //' TagQt.AppDir/AppRun
+          chmod +x TagQt.AppDir/AppRun
+
+      - name: Create AppStream metadata
+        run: |
+          mkdir -p TagQt.AppDir/usr/share/metainfo
+          cat > TagQt.AppDir/usr/share/metainfo/tagqt.appdata.xml << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <component type="desktop-application">
+            <id>io.github.selr1.tagqt</id>
+            <name>TagQt</name>
+            <summary>A music metadata editor built with Python and Qt</summary>
+            <metadata_license>MIT</metadata_license>
+            <project_license>MIT</project_license>
+            <description>
+              <p>
+                TagQt lets you edit audio file metadata without the bloat.
+                Edit tags one at a time or in bulk, fetch lyrics and album
+                art automatically, auto-tag from MusicBrainz, and more.
+              </p>
+            </description>
+            <releases>
+              <release version="${{ steps.version.outputs.VERSION }}"
+                       date="$(date -u +%Y-%m-%d)"/>
+            </releases>
+            <url type="homepage">https://github.com/selr1/tagqt</url>
+            <url type="bugtracker">https://github.com/selr1/tagqt/issues</url>
+          </component>
+          EOF
+          sed -i 's/^          //' TagQt.AppDir/usr/share/metainfo/tagqt.appdata.xml
+
+      - name: Download appimagetool
+        run: |
+          wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 ./appimagetool TagQt.AppDir "TagQt-linux-${{ steps.version.outputs.TAG }}.AppImage"
+          chmod +x "TagQt-linux-${{ steps.version.outputs.TAG }}.AppImage"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: TagQt-linux-${{ steps.version.outputs.TAG }}.AppImage
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux]
+
+    steps:
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: release-assets/
+
+      - name: Download Linux build
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: release-assets/
+
+      - name: List release assets
+        run: ls -la release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: TagQt ${{ github.ref_name }}
+          generate_release_notes: true
+          make_latest: true
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

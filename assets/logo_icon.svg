@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 512 512" width="512" height="512">
+
+  <!-- TagQt Square Icon — Catppuccin Mocha — waveform only       -->
+  <!-- Use for: system icons, AppImage, .desktop, taskbar, window  -->
+  <!-- DO NOT use for: README banner, in-app about/splash logos    -->
+
+  <defs>
+    <linearGradient id="wg" x1="71" y1="0" x2="441" y2="0"
+                    gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#6991d7" stop-opacity="0.75"/>
+      <stop offset="16%"  stop-color="#89b4fa"/>
+      <stop offset="33%"  stop-color="#b99ef3"/>
+      <stop offset="50%"  stop-color="#cba6f7"/>
+      <stop offset="67%"  stop-color="#b99ef3"/>
+      <stop offset="84%"  stop-color="#89b4fa"/>
+      <stop offset="100%" stop-color="#6991d7" stop-opacity="0.75"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bar 0  x=71  y=216  w=34  h=80  -->
+  <rect x="71"  y="216" width="34" height="80"  rx="12" fill="url(#wg)"/>
+  <!-- Bar 1  x=127 y=176  w=34  h=160 -->
+  <rect x="127" y="176" width="34" height="160" rx="12" fill="url(#wg)"/>
+  <!-- Bar 2  x=183 y=121  w=34  h=270 -->
+  <rect x="183" y="121" width="34" height="270" rx="12" fill="url(#wg)"/>
+  <!-- Bar 3  x=239 y=81   w=34  h=350 -->
+  <rect x="239" y="81"  width="34" height="350" rx="12" fill="url(#wg)"/>
+  <!-- Bar 4  x=295 y=121  w=34  h=270 -->
+  <rect x="295" y="121" width="34" height="270" rx="12" fill="url(#wg)"/>
+  <!-- Bar 5  x=351 y=176  w=34  h=160 -->
+  <rect x="351" y="176" width="34" height="160" rx="12" fill="url(#wg)"/>
+  <!-- Bar 6  x=407 y=216  w=34  h=80  -->
+  <rect x="407" y="216" width="34" height="80"  rx="12" fill="url(#wg)"/>
+
+</svg>
