@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, QThread
 from tagqt.core.tags import MetadataHandler
 from tagqt.core.musicbrainz import MusicBrainzClient
 from tagqt.core.case import CaseConverter
@@ -7,6 +7,12 @@ import os
 import re
 import time
 import threading
+
+try:
+    import librosa
+    LIBROSA_AVAILABLE = True
+except ImportError:
+    LIBROSA_AVAILABLE = False
 
 class LyricsWorker(QObject):
     progress = Signal(int, int)
@@ -720,3 +726,22 @@ class SaveWorker(QObject):
             self.progress.emit(total, total)
         finally:
             self.finished.emit()
+
+
+class BpmDetectWorker(QThread):
+    finished = Signal(int)
+    failed = Signal(str)
+
+    def __init__(self, filepath):
+        super().__init__()
+        self._filepath = filepath
+
+    def run(self):
+        try:
+            import librosa
+            y, sr = librosa.load(self._filepath, sr=None, mono=True)
+            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+            bpm = round(float(tempo))
+            self.finished.emit(bpm)
+        except Exception as e:
+            self.failed.emit(str(e))

@@ -16,7 +16,8 @@ from tagqt.ui.batch_status import ClickableProgressBar, BatchStatusDialog, Click
 from tagqt.ui.workers import (
     LyricsWorker, AutoTagWorker, FolderLoaderWorker, RenameWorker,
     CoverFetchWorker, CoverResizeWorker, RomanizeWorker, CaseConvertWorker,
-    FlacReencodeWorker, CsvImportWorker, SaveWorker, DuplicateScanWorker
+    FlacReencodeWorker, CsvImportWorker, SaveWorker, DuplicateScanWorker,
+    BpmDetectWorker, LIBROSA_AVAILABLE
 )
 import logging
 import os
@@ -244,6 +245,10 @@ class MainWindow(QMainWindow):
         self.sidebar.load_lyrics_clicked.connect(self.load_lyrics_from_file)
         self.sidebar.cancel_global_clicked.connect(self.exit_global_mode)
         self.sidebar.reencode_flac_clicked.connect(self.reencode_flac_selected)
+        self.sidebar.detect_bpm_clicked.connect(self.detect_bpm)
+        if not LIBROSA_AVAILABLE:
+            self.sidebar.bpm_detect_btn.setEnabled(False)
+            self.sidebar.bpm_detect_btn.setToolTip("Install librosa for BPM detection")
         content_layout.addWidget(self.sidebar, stretch=1)
         
         main_layout.addLayout(content_layout)
@@ -2067,6 +2072,30 @@ auto-tag from MusicBrainz, batch rename files — all in one place.</p>
             # Refresh the item in the list
             self.file_list.update_file(self.current_file)
             self.file_list.update_missing_indicators()
+
+    def detect_bpm(self):
+        if not LIBROSA_AVAILABLE:
+            return
+        if not self.current_file:
+            self.show_toast("Select a file first.")
+            return
+        self.sidebar.bpm_detect_btn.setEnabled(False)
+        self.sidebar.bpm_detect_btn.setText("Detecting…")
+        self._bpm_worker = BpmDetectWorker(self.current_file)
+        self._bpm_worker.finished.connect(self._on_bpm_detected)
+        self._bpm_worker.failed.connect(self._on_bpm_failed)
+        self._bpm_worker.start()
+
+    def _on_bpm_detected(self, bpm):
+        self.sidebar.bpm_edit.setText(str(bpm))
+        self.sidebar.bpm_detect_btn.setText("Detect")
+        self.sidebar.bpm_detect_btn.setEnabled(True)
+        self.show_toast(f"Detected BPM: {bpm}")
+
+    def _on_bpm_failed(self, reason):
+        self.sidebar.bpm_detect_btn.setText("Detect")
+        self.sidebar.bpm_detect_btn.setEnabled(True)
+        self.show_toast(f"BPM detection failed: {reason}")
 
     def romanize_metadata(self):
         if getattr(self.sidebar, 'is_global_mode', False):

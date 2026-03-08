@@ -22,6 +22,7 @@ class Sidebar(QWidget):
     load_lyrics_clicked = Signal()
     cancel_global_clicked = Signal()
     reencode_flac_clicked = Signal()
+    detect_bpm_clicked = Signal()
 
     def __init__(self):
         super().__init__()
@@ -111,6 +112,26 @@ class Sidebar(QWidget):
         self.disc_edit = QLineEdit()
         self.track_edit = QLineEdit()
         self.bpm_edit = QLineEdit()
+        self.bpm_detect_btn = QPushButton("Detect")
+        self.bpm_detect_btn.setCursor(Qt.PointingHandCursor)
+        self.bpm_detect_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Theme.SURFACE1};
+                color: {Theme.TEXT};
+                border: none;
+                border-radius: {Theme.CORNER_RADIUS};
+                padding: 4px 10px;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: {Theme.SURFACE2};
+            }}
+            QPushButton:disabled {{
+                color: {Theme.SUBTEXT0};
+                background-color: {Theme.SURFACE0};
+            }}
+        """)
+        self.bpm_detect_btn.clicked.connect(self.detect_bpm_clicked.emit)
         self.key_edit = QLineEdit()
         self.isrc_edit = QLineEdit()
         self.publisher_edit = QLineEdit()
@@ -126,7 +147,11 @@ class Sidebar(QWidget):
         self.track_label = QLabel("Track:")
         extended_layout.addRow(self.track_label, self.track_edit)
         self.bpm_label = QLabel("BPM:")
-        extended_layout.addRow(self.bpm_label, self.bpm_edit)
+        bpm_row = QHBoxLayout()
+        bpm_row.setSpacing(6)
+        bpm_row.addWidget(self.bpm_edit)
+        bpm_row.addWidget(self.bpm_detect_btn)
+        extended_layout.addRow(self.bpm_label, bpm_row)
         self.key_label = QLabel("Key:")
         extended_layout.addRow(self.key_label, self.key_edit)
         self.isrc_label = QLabel("ISRC:")
