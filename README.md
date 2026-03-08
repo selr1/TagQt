@@ -13,7 +13,7 @@
   <a href="https://github.com/selr1/tagqt"><img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&labelColor=1e1e2e&color=89b4fa" alt="Python 3.10+"/></a>
 </p>
 
-TagQt lets you edit audio file metadata without the bloat. Load a folder, edit tags one at a time or in bulk, fetch lyrics and album art automatically, auto-tag from MusicBrainz, rename files by pattern, and re-encode FLAC — all from one window.
+TagQt lets you edit audio file metadata without the bloat. Load a folder, edit tags one at a time or in bulk, fetch lyrics and album art automatically, auto-tag from MusicBrainz, rename files by pattern, and re-encode FLAC, all from one window.
 
 ## Screenshot
 
@@ -56,7 +56,7 @@ TagQt lets you edit audio file metadata without the bloat. Load a folder, edit t
 
 Download the latest build from [Releases](https://github.com/selr1/tagqt/releases):
 
-- **Windows** — download the `.exe` and run it directly
+- **Windows** — download the installer `.exe` to install.
 - **Linux** — download the AppImage, make it executable with `chmod +x`, and run it
 
 ### From Source
@@ -109,4 +109,4 @@ Check [`.github/workflows/release.yml`](.github/workflows/release.yml) for the f
 
 ## Contributing
 
-Contributions are welcome — open an issue or submit a pull request.
+Contributions are welcome, open an issue or submit a pull request.

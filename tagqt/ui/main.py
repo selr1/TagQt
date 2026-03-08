@@ -27,7 +27,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         from PySide6.QtWidgets import QApplication
         self.setWindowIcon(QApplication.instance().windowIcon())
-        self.setWindowTitle("TagQt")
+        from tagqt.version import __version__
+        self.setWindowTitle(f"TagQt {__version__}")
         self.resize(1200, 800)
         
         # Core Logic
@@ -1383,10 +1384,11 @@ class MainWindow(QMainWindow):
         logo_pixmap.save(buffer, "PNG")
         logo_b64 = base64.b64encode(buffer.data().data()).decode()
         
+        from tagqt.version import __version__
         about_text = f"""
 <div style="text-align: center; margin-bottom: 10px;">
 <img src="data:image/png;base64,{logo_b64}" width="{target_w}" height="{target_h}"><br>
-<span style="color: {Theme.SUBTEXT0};">v1.0.0</span>
+<span style="color: {Theme.SUBTEXT0};">v{__version__}</span>
 </div>
 
 <p>A fast, modern music tag editor. Edit metadata, fetch lyrics and covers,
