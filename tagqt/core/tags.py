@@ -1,13 +1,13 @@
 import mutagen
+from mutagen import File
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, ID3NoHeaderError, USLT, APIC
+from mutagen.id3 import ID3, ID3NoHeaderError, USLT, APIC, COMM, TKEY
 from mutagen.flac import FLAC, Picture
 from mutagen.oggvorbis import OggVorbis
 from mutagen.mp4 import MP4, MP4Cover
 import os
 from PIL import Image
 import io
-from mutagen.id3 import COMM
 
 def _get_comment(id3, _):
     frames = id3.getall('COMM')
@@ -74,11 +74,14 @@ class MetadataHandler:
                 print(f"[TagQt] Warning: could not set tag '{tag}': {e}")
 
     def save(self):
-        if self.audio:
-            self.audio.save()
-            # Auto-save lyrics to .lrc if present
-            if self.lyrics:
-                self.save_lyrics_file()
+        try:
+            if self.audio:
+                self.audio.save()
+                # Auto-save lyrics to .lrc if present
+                if self.lyrics:
+                    self.save_lyrics_file()
+        except Exception as e:
+            print(f"[TagQt] Warning: save failed: {e}")
 
     def save_lyrics_file(self):
         """Saves lyrics to a .lrc file with the same name as the audio file."""
@@ -252,8 +255,7 @@ class MetadataHandler:
 
     @comment.setter
     def comment(self, value):
-        from mutagen.easyid3 import EasyID3 as _EasyID3
-        if isinstance(self.audio, _EasyID3):
+        if isinstance(self.audio, EasyID3):
             # Use registered COMM frame handler
             if value:
                 self.audio['comment'] = [str(value)]
@@ -418,122 +420,71 @@ class MetadataHandler:
         return 0.0
 
     def get_cover(self):
-        if self.audio is None:
+        try:
+            if isinstance(self.audio, EasyID3):
+                id3_obj = ID3(self.audio.filename)
+                frames = id3_obj.getall('APIC')
+                return frames[0].data if frames else None
+
+            elif isinstance(self.audio, FLAC):
+                pics = self.audio.pictures
+                return pics[0].data if pics else None
+
+            elif isinstance(self.audio, OggVorbis):
+                import base64
+                blocks = self.audio.get('metadata_block_picture', [])
+                if blocks:
+                    pic = Picture(base64.b64decode(blocks[0]))
+                    return pic.data
+                return None
+
+            elif isinstance(self.audio, MP4):
+                covers = self.audio.get('covr', [])
+                return bytes(covers[0]) if covers else None
+
+        except Exception as e:
+            print(f"[TagQt] Warning: could not read cover art: {e}")
             return None
 
+    def set_cover(self, data):
         try:
-            # ID3 (MP3)
-            if isinstance(self.audio, (ID3, EasyID3)):
-                tags = self.audio
-                if hasattr(tags, '_ID3__id3'): # EasyID3 internal
-                    tags = tags._ID3__id3
-                
-                for key in tags.keys():
-                    if key.startswith('APIC:'):
-                        return tags[key].data
-            
-            elif hasattr(self.audio, 'tags') and not isinstance(self.audio, (FLAC, OggVorbis)):
-                # Other formats with .tags attribute (like MP4)
-                tags = self.audio.tags
-                if tags:
-                    # Handle MP4 covers separately if needed, but let's see
-                    if isinstance(self.audio, MP4) and 'covr' in tags:
-                        return bytes(tags['covr'][0])
-                    
-                    # Fallback for others
-                    for key in tags.keys():
-                        if key.startswith('APIC:'):
-                            return tags[key].data
+            if isinstance(self.audio, EasyID3):
+                # MP3: EasyID3 has no .add() — must use raw ID3 layer
+                id3_obj = ID3(self.audio.filename)
+                id3_obj.delall('APIC')
+                id3_obj.add(APIC(
+                    encoding=3,
+                    mime='image/jpeg',
+                    type=3,
+                    desc='Cover',
+                    data=data
+                ))
+                id3_obj.save(self.audio.filename)
 
-            # FLAC / Ogg (Directly on the object)
-            if isinstance(self.audio, (FLAC, OggVorbis)):
-                if hasattr(self.audio, 'pictures') and self.audio.pictures:
-                    return self.audio.pictures[0].data
-                # Some Ogg might have it in tags? Usually FLAC uses pictures.
-
-            # MP4
-            elif isinstance(self.audio, MP4):
-                if 'covr' in self.audio and self.audio['covr']:
-                    return bytes(self.audio['covr'][0])
-
-        except Exception as e:
-            print(f"Error getting cover: {e}")
-        return None
-
-    def set_cover(self, data, max_size=500):
-        """Sets the cover art, optionally resizing it."""
-        if self.audio is None or not data:
-            return
-
-        # Resize if needed
-        if max_size and max_size > 0:
-            try:
-                img = Image.open(io.BytesIO(data))
-                
-                if img.width > max_size or img.height > max_size:
-                    img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-                    
-                    # Save back to bytes
-                    output = io.BytesIO()
-                    # Preserve format if possible, but APIC usually expects JPEG or PNG. 
-                    # Let's default to JPEG for compatibility and size.
-                    img = img.convert('RGB')
-                    img.save(output, format='JPEG', quality=85)
-                    data = output.getvalue()
-            except Exception as e:
-                print(f"Error resizing cover: {e}")
-                # Proceed with original data if resize fails
-
-        try:
-            # ID3 (MP3)
-            if isinstance(self.audio, (ID3, EasyID3)) or (hasattr(self.audio, 'tags') and isinstance(self.audio.tags, (ID3, EasyID3))):
-                tags = self.audio if isinstance(self.audio, ID3) else self.audio.tags
-                if tags is not None:
-                    # Remove existing
-                    to_del = [k for k in tags.keys() if k.startswith('APIC:')]
-                    for k in to_del:
-                        del tags[k]
-                    
-                    from mutagen.easyid3 import EasyID3 as _EasyID3
-                    from mutagen.id3 import APIC, ID3
-
-                    if isinstance(self.audio, _EasyID3):
-                        # EasyID3 does not support .add() — access the underlying ID3 object
-                        try:
-                            id3 = ID3(self.audio.filename)
-                            id3.delall('APIC')
-                            id3.add(APIC(
-                                encoding=3,
-                                mime='image/jpeg',
-                                type=3,
-                                desc='Cover',
-                                data=data
-                            ))
-                            id3.save(self.audio.filename)
-                        except Exception as e:
-                            print(f"[TagQt] Warning: could not save cover art to MP3: {e}")
-                    else:
-                        # FLAC, OGG, M4A — existing path, do not change
-                        tags.add(APIC(
-                            encoding=3,
-                            mime='image/jpeg',
-                            type=3,
-                            desc='Cover',
-                            data=data
-                        ))
-            
-            # FLAC
-            elif isinstance(self.audio, (FLAC, OggVorbis)):
+            elif isinstance(self.audio, FLAC):
+                pic = Picture()
+                pic.type = 3
+                pic.mime = 'image/jpeg'
+                pic.desc = 'Cover'
+                pic.data = data
                 self.audio.clear_pictures()
-                p = Picture()
-                p.data = data
-                p.type = 3
-                p.mime = "image/jpeg"
-                self.audio.add_picture(p)
-            
-            # MP4
+                self.audio.add_picture(pic)
+
+            elif isinstance(self.audio, OggVorbis):
+                pic = Picture()
+                pic.type = 3
+                pic.mime = 'image/jpeg'
+                pic.desc = 'Cover'
+                pic.data = data
+                import base64
+                self.audio['metadata_block_picture'] = [
+                    base64.b64encode(pic.write()).decode('ascii')
+                ]
+
             elif isinstance(self.audio, MP4):
-                self.audio['covr'] = [MP4Cover(data, imageformat=MP4Cover.FORMAT_JPEG)]
-                
+                self.audio['covr'] = [
+                    MP4Cover(data, imageformat=MP4Cover.FORMAT_JPEG)
+                ]
+
         except Exception as e:
-            print(f"Error setting cover: {e}")
+            print(f"[TagQt] Warning: could not save cover art: {e}")
