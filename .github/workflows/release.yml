@@ -173,30 +173,25 @@ jobs:
             main.py
         shell: cmd
 
-      - name: Diagnose dist structure
-        run: |
-          Write-Host "=== dist/TagQt top level ==="
-          Get-ChildItem "dist\TagQt" | Select-Object Name
-          Write-Host "=== PySide6 contents ==="
-          Get-ChildItem "dist\TagQt\PySide6" | Select-Object Name
-          Write-Host "=== Checking for Qt subdir ==="
-          if (Test-Path "dist\TagQt\PySide6\Qt") {
-            Get-ChildItem "dist\TagQt\PySide6\Qt" | Select-Object Name
-          } else {
-            Write-Host "No Qt subdir found - checking for translations directly"
-            Get-ChildItem "dist\TagQt\PySide6" -Recurse -Filter "translations" -ErrorAction SilentlyContinue | Select-Object FullName
-          }
-          Write-Host "=== Total dist size ==="
-          $size = (Get-ChildItem "dist\TagQt" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
-          Write-Host "Total: $([math]::Round($size, 1)) MB"
-        shell: pwsh
-
       - name: Clean bloat from dist
         run: |
           $dist = "dist\TagQt\_internal"
+          Write-Host "PySide6 structure:"
+          if (Test-Path "$dist\PySide6") {
+            Get-ChildItem "$dist\PySide6" | Select-Object Name
+          } else {
+            Write-Host "PySide6 not found at $dist\PySide6"
+          }
+          if (Test-Path "$dist\PySide6\Qt") {
+            Write-Host "Qt subdir contents:"
+            Get-ChildItem "$dist\PySide6\Qt" | Select-Object Name
+          } else {
+            Write-Host "No Qt subdir found - searching for translations:"
+            Get-ChildItem "$dist\PySide6" -Recurse -Filter "translations" -ErrorAction SilentlyContinue | Select-Object FullName
+          }
           Remove-Item "$dist\PySide6\Qt\translations" -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item "$dist\PySide6\Qt\resources" -Recurse -Force -ErrorAction SilentlyContinue
-          Get-ChildItem "$dist" -Recurse -Filter "*.pyi" | Remove-Item -Force -ErrorAction SilentlyContinue
+          Get-ChildItem "$dist" -Recurse -Filter "*.pyi" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
           $unused = @(
             "qmllint","qmltooling","designer","assetimporters",
             "sceneparsers","renderers","sqldrivers","canbus",
@@ -206,8 +201,8 @@ jobs:
           foreach ($dir in $unused) {
             Remove-Item "$dist\PySide6\Qt\plugins\$dir" -Recurse -Force -ErrorAction SilentlyContinue
           }
-          $size = (Get-ChildItem "dist\TagQt" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
-          Write-Host "Cleaned dist size: $([math]::Round($size, 1)) MB"
+          $size = (Get-ChildItem "dist\TagQt" -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host "Final dist size: $([math]::Round($size, 1)) MB"
         shell: pwsh
 
       - name: Install Inno Setup
@@ -429,35 +424,24 @@ jobs:
             --strip \
             main.py
 
-      - name: Diagnose dist structure
-        run: |
-          echo "=== dist/TagQt top level ==="
-          ls dist/TagQt/
-          echo "=== PySide6 contents ==="
-          ls dist/TagQt/PySide6/
-          echo "=== Checking for Qt subdir ==="
-          if [ -d "dist/TagQt/PySide6/Qt" ]; then
-            ls dist/TagQt/PySide6/Qt/
-          else
-            echo "No Qt subdir — searching for translations directly"
-            find dist/TagQt/PySide6 -name "translations" -type d 2>/dev/null
-          fi
-          echo "=== Total dist size ==="
-          du -sh dist/TagQt/
-
       - name: Clean bloat from dist
         run: |
           dist="dist/TagQt/_internal"
-          rm -rf "$dist/PySide6/Qt/translations"
-          rm -rf "$dist/PySide6/Qt/resources"
-          find "$dist" -name "*.pyi" -delete
+          echo "PySide6 structure:"
+          ls "$dist/PySide6/" 2>/dev/null || echo "PySide6 dir not found at $dist/PySide6"
+          ls "$dist/PySide6/Qt/" 2>/dev/null || echo "No Qt subdir found"
+          find "$dist/PySide6" -name "translations" -type d 2>/dev/null || echo "No translations dir found"
+          rm -rf "$dist/PySide6/Qt/translations" 2>/dev/null || true
+          rm -rf "$dist/PySide6/Qt/resources" 2>/dev/null || true
+          find "$dist" -name "*.pyi" -delete 2>/dev/null || true
           for dir in qmllint qmltooling designer assetimporters \
                       sceneparsers renderers sqldrivers canbus \
                       geoservices geometryloaders position sensors \
                       texttospeech webview scxmldatamodel renderplugins; do
-            rm -rf "$dist/PySide6/Qt/plugins/$dir"
+            rm -rf "$dist/PySide6/Qt/plugins/$dir" 2>/dev/null || true
           done
-          echo "Cleaned dist size: $(du -sh dist/TagQt | cut -f1)"
+          echo "Final dist size: $(du -sh dist/TagQt | cut -f1)"
+        shell: bash
 
       - name: Create AppDir structure
         run: |
