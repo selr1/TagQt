@@ -116,6 +116,9 @@ jobs:
             --hidden-import tagqt.core.rename ^
             --hidden-import tagqt.core.csv_io ^
             --hidden-import tagqt.core.roman ^
+            --hidden-import tagqt.core.case ^
+            --hidden-import koroman ^
+            --collect-data koroman ^
             --hidden-import tagqt.core.tags ^
             --hidden-import certifi ^
             --collect-data certifi ^
@@ -289,6 +292,9 @@ jobs:
             --hidden-import tagqt.core.rename \
             --hidden-import tagqt.core.csv_io \
             --hidden-import tagqt.core.roman \
+            --hidden-import tagqt.core.case \
+            --hidden-import koroman \
+            --collect-data koroman \
             --hidden-import tagqt.core.tags \
             --hidden-import certifi \
             --collect-data certifi \

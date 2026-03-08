@@ -7,6 +7,25 @@ from mutagen.mp4 import MP4, MP4Cover
 import os
 from PIL import Image
 import io
+from mutagen.id3 import COMM
+
+def _get_comment(id3, _):
+    frames = id3.getall('COMM')
+    return [f.text[0] for f in frames if f.text]
+
+def _set_comment(id3, _, value):
+    id3.delall('COMM')
+    id3.add(COMM(
+        encoding=3,
+        lang='eng',
+        desc='',
+        text=value
+    ))
+
+def _delete_comment(id3, _):
+    id3.delall('COMM')
+
+EasyID3.RegisterKey('comment', _get_comment, _set_comment, _delete_comment)
 
 class MetadataHandler:
     """Reads and writes audio file metadata tags across MP3, FLAC, OGG, M4A formats."""
@@ -183,14 +202,24 @@ class MetadataHandler:
 
     @property
     def comment(self):
-        # Comments are tricky in EasyID3, often not mapped standardly or as 'comment'
-        # For now, let's try 'comment' or fallback to raw tags if needed.
-        # EasyID3 maps 'comment' to COMM frames.
-        return self.get_tag('comment')
+        try:
+            val = self.get_tag('comment')
+            return val if val else ''
+        except Exception:
+            return ''
 
     @comment.setter
     def comment(self, value):
-        self.set_tag('comment', value)
+        from mutagen.easyid3 import EasyID3 as _EasyID3
+        if isinstance(self.audio, _EasyID3):
+            # Use registered COMM frame handler
+            if value:
+                self.audio['comment'] = [str(value)]
+            else:
+                if 'comment' in self.audio:
+                    del self.audio['comment']
+        else:
+            self.set_tag('comment', value)
 
     @property
     def lyrics(self):
