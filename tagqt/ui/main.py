@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
         self.btn_prev.clicked.connect(self.player.prev_track)
         player_bar_layout.addWidget(self.btn_prev)
         
-        self.btn_play = QPushButton("▶")
+        self.btn_play = QPushButton("⏵")
         self.btn_play.setStyleSheet(btn_style)
         self.btn_play.setCursor(Qt.PointingHandCursor)
         self.btn_play.setToolTip("Play / Pause")
@@ -341,8 +341,8 @@ class MainWindow(QMainWindow):
         self.time_label.setAlignment(Qt.AlignCenter)
         player_bar_layout.addWidget(self.time_label)
         
-        vol_label = QLabel("🔊")
-        vol_label.setStyleSheet(f"color: {Theme.SUBTEXT0}; font-size: 13px; background: transparent; border: none;")
+        vol_label = QLabel("♪")
+        vol_label.setStyleSheet(f"color: {Theme.SUBTEXT1}; font-size: 13px; background: transparent; border: none;")
         player_bar_layout.addWidget(vol_label)
         self._vol_label = vol_label  # store for theme refresh
         
@@ -438,6 +438,7 @@ class MainWindow(QMainWindow):
             msg.setWindowTitle("Unsaved Changes")
             msg.setText("You have unsaved changes.")
             msg.setInformativeText("Save before closing?")
+            msg.setStyleSheet(Theme.current_stylesheet())
             save_btn = msg.addButton("Save and quit", QMessageBox.AcceptRole)
             discard_btn = msg.addButton("Discard", QMessageBox.DestructiveRole)
             cancel_btn = msg.addButton("Cancel", QMessageBox.RejectRole)
@@ -452,12 +453,15 @@ class MainWindow(QMainWindow):
         
         if self.batch_running:
             from PySide6.QtWidgets import QMessageBox
-            reply = QMessageBox.question(
-                self, "Task Running",
-                "A background task is still running. Quit anyway?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-            )
-            if reply == QMessageBox.No:
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Task Running")
+            msg.setText("A background task is still running. Quit anyway?")
+            msg.setStyleSheet(Theme.current_stylesheet())
+            wait_btn = msg.addButton("Wait", QMessageBox.RejectRole)
+            msg.addButton("Force Quit", QMessageBox.DestructiveRole)
+            msg.setDefaultButton(wait_btn)
+            msg.exec()
+            if msg.clickedButton() == wait_btn:
                 event.ignore()
                 return
         
@@ -827,6 +831,9 @@ class MainWindow(QMainWindow):
         if dlg.clickedButton() != delete_btn:
             return
 
+        self._delete_files_by_path(files)
+
+    def _delete_files_by_path(self, files):
         deleted = []
         playing_path = self.player.current_path if hasattr(self, 'player') else None
 
@@ -1304,12 +1311,11 @@ class MainWindow(QMainWindow):
 
     def _on_duplicates_found(self, dupes):
         from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-                                       QPushButton, QScrollArea, QWidget)
-        from PySide6.QtCore import QSize
+                                       QPushButton, QTreeWidget, QTreeWidgetItem,
+                                       QWidget, QDialogButtonBox)
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Duplicate Tracks")
-        dialog.setMaximumWidth(480)
         dialog.setStyleSheet(Theme.current_stylesheet())
 
         layout = QVBoxLayout(dialog)
@@ -1318,173 +1324,188 @@ class MainWindow(QMainWindow):
 
         # ── Title ──
         title_label = QLabel("Duplicate Tracks")
-        title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet(
-            f"color: {Theme.TEXT}; font-size: 15px; font-weight: 600; background: transparent;")
+            f"color: {Theme.TEXT}; font-size: 16px; font-weight: 600;")
         layout.addWidget(title_label)
+
+        # ── Content container ──
+        container = QWidget()
+        container.setObjectName("dupeContent")
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(12, 12, 12, 12)
+        container_layout.setSpacing(10)
+        container.setStyleSheet(f"""
+            QWidget#dupeContent {{
+                border: 1px solid {Theme.SURFACE1};
+                border-radius: {Theme.CORNER_RADIUS};
+                background-color: {Theme.SURFACE0};
+            }}
+        """)
 
         if not dupes:
             # ── Empty state ──
-            layout.addStretch()
+            container_layout.addStretch()
 
             check = QLabel("✓")
             check.setAlignment(Qt.AlignCenter)
             check.setStyleSheet(
-                f"color: {Theme.GREEN}; font-size: 48px; background: transparent;")
-            layout.addWidget(check)
+                f"color: {Theme.GREEN}; font-size: 16px;")
+            container_layout.addWidget(check)
 
             msg = QLabel("No duplicate tracks found")
             msg.setAlignment(Qt.AlignCenter)
             msg.setStyleSheet(
-                f"color: {Theme.TEXT}; font-size: 15px; font-weight: 600; background: transparent;")
-            layout.addWidget(msg)
+                f"color: {Theme.TEXT}; font-size: 16px; font-weight: 600;")
+            container_layout.addWidget(msg)
 
             sub = QLabel("All tracks in this folder have unique\ntitle + artist combinations.")
             sub.setAlignment(Qt.AlignCenter)
             sub.setWordWrap(True)
             sub.setStyleSheet(
-                f"color: {Theme.SUBTEXT1}; font-size: 12px; background: transparent;")
-            layout.addWidget(sub)
+                f"color: {Theme.SUBTEXT1}; font-size: 13px;")
+            container_layout.addWidget(sub)
 
-            layout.addStretch()
+            container_layout.addStretch()
         else:
             # ── Results state ──
             count_label = QLabel(
                 f"Found {len(dupes)} duplicate group{'s' if len(dupes) != 1 else ''}")
-            count_label.setAlignment(Qt.AlignCenter)
             count_label.setStyleSheet(
-                f"color: {Theme.SUBTEXT1}; font-size: 12px; background: transparent;")
-            layout.addWidget(count_label)
+                f"color: {Theme.SUBTEXT1}; font-size: 13px;")
+            container_layout.addWidget(count_label)
 
-            container = QWidget()
-            container_layout = QVBoxLayout(container)
-            container_layout.setContentsMargins(0, 0, 0, 0)
-            container_layout.setSpacing(8)
+            tree = QTreeWidget()
+            tree.setHeaderHidden(True)
+            tree.setIndentation(16)
+            tree.setRootIsDecorated(True)
+            tree.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
             for (title_key, artist_key), paths in sorted(dupes, key=lambda d: d[0]):
-                card = QWidget()
-                card.setStyleSheet(f"""
-                    QWidget#dupeCard {{
-                        background-color: {Theme.SURFACE0};
-                        border: 1px solid {Theme.SURFACE1};
-                        border-radius: 8px;
-                    }}
-                """)
-                card.setObjectName("dupeCard")
-                card_layout = QVBoxLayout(card)
-                card_layout.setContentsMargins(12, 12, 12, 12)
-                card_layout.setSpacing(4)
-
                 display_title = title_key or "(no title)"
                 display_artist = artist_key or "(no artist)"
 
-                t_label = QLabel(display_title)
-                t_label.setStyleSheet(
-                    f"color: {Theme.TEXT}; font-size: 13px; font-weight: 600;"
-                    " background: transparent; border: none;")
-                card_layout.addWidget(t_label)
+                group = QTreeWidgetItem([f"{display_title} — by {display_artist}"])
+                group.setFont(0, QFont(Theme.FONT_FAMILY, -1, QFont.Weight.DemiBold))
+                group.setForeground(0, QColor(Theme.TEXT))
+                group.setFlags(group.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+                tree.addTopLevelItem(group)
 
-                a_label = QLabel(f"by {display_artist}")
-                a_label.setStyleSheet(
-                    f"color: {Theme.SUBTEXT1}; font-size: 12px;"
-                    " background: transparent; border: none;")
-                card_layout.addWidget(a_label)
+                for idx, path in enumerate(paths):
+                    if idx == 0:
+                        child = QTreeWidgetItem([f"{os.path.basename(path)}  (keep)"])
+                        child.setForeground(0, QColor(Theme.SUBTEXT0))
+                        child.setFlags(child.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+                    else:
+                        child = QTreeWidgetItem([os.path.basename(path)])
+                        child.setForeground(0, QColor(Theme.BLUE))
+                        child.setData(0, Qt.ItemDataRole.UserRole, path)
+                        child.setToolTip(0, path)
+                    group.addChild(child)
 
-                for path in paths:
-                    btn = QPushButton(f"  ▸ {os.path.basename(path)}")
-                    btn.setStyleSheet(f"""
-                        QPushButton {{
-                            background: transparent;
-                            color: {Theme.BLUE};
-                            border: none;
-                            text-align: left;
-                            padding: 2px 0px 2px 6px;
-                            font-size: 12px;
-                        }}
-                        QPushButton:hover {{
-                            color: {Theme.BLUE};
-                            text-decoration: underline;
-                        }}
-                    """)
-                    btn.setCursor(Qt.PointingHandCursor)
-                    btn.setToolTip(path)
-                    btn.clicked.connect(
-                        lambda checked, p=path, d=dialog: self._select_duplicate(p, d))
-                    card_layout.addWidget(btn)
+            tree.expandAll()
+            tree.itemClicked.connect(
+                lambda item, col: self._on_dupe_tree_clicked(item, dialog))
+            container_layout.addWidget(tree)
 
-                container_layout.addWidget(card)
-
-            container_layout.addStretch()
-
-            scroll = QScrollArea()
-            scroll.setWidgetResizable(True)
-            scroll.setStyleSheet(f"""
-                QScrollArea {{
-                    background-color: transparent;
-                    border: none;
-                }}
-            """)
-            scroll.setWidget(container)
-            content_h = container.sizeHint().height()
-            scroll_h = min(content_h + 2, 400)
-            scroll.setFixedHeight(scroll_h)
-            layout.addWidget(scroll)
+        layout.addWidget(container)
 
         # ── Footer ──
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btn_box.rejected.connect(dialog.reject)
+
+        if dupes:
+            extra_paths = [p for (_, _), paths in dupes for p in paths[1:]]
+            delete_btn = QPushButton("Delete Duplicates")
+            delete_btn.setProperty("class", "destructive")
+            delete_btn.setCursor(Qt.PointingHandCursor)
+            delete_btn.clicked.connect(
+                lambda: self._show_delete_confirmation(extra_paths, dialog))
+            btn_box.addButton(delete_btn, QDialogButtonBox.ButtonRole.ActionRole)
+
+        layout.addWidget(btn_box)
+
+        dialog.setMinimumWidth(360)
+        dialog.setMinimumHeight(300)
+        dialog.resize(400, 350)
+        dialog.exec()
+
+    def _show_delete_confirmation(self, paths, parent_dialog):
+        from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
+                                       QPushButton, QListWidget, QListWidgetItem)
+
+        confirm = QDialog(self)
+        confirm.setWindowTitle("Delete Duplicates")
+        confirm.setStyleSheet(Theme.current_stylesheet())
+        confirm.resize(480, 360)
+
+        layout = QVBoxLayout(confirm)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        header = QLabel("Files marked for deletion")
+        header.setStyleSheet(
+            f"font-size: 16px; font-weight: 600; color: {Theme.TEXT};")
+        layout.addWidget(header)
+
+        sub = QLabel(
+            "Uncheck any files you want to keep. "
+            "Checked files will be permanently deleted.")
+        sub.setWordWrap(True)
+        sub.setStyleSheet(f"color: {Theme.SUBTEXT1}; font-size: 13px;")
+        layout.addWidget(sub)
+
+        list_widget = QListWidget()
+        list_widget.setFixedHeight(220)
+        list_widget.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        list_widget.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        for path in paths:
+            item = QListWidgetItem(os.path.basename(path))
+            item.setData(Qt.ItemDataRole.UserRole, path)
+            item.setCheckState(Qt.CheckState.Checked)
+            item.setToolTip(path)
+            list_widget.addItem(item)
+
+        layout.addWidget(list_widget)
+
         footer = QHBoxLayout()
         footer.addStretch()
 
-        if dupes:
-            select_all_btn = QPushButton("Select All Duplicates")
-            select_all_btn.setCursor(Qt.PointingHandCursor)
-            select_all_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Theme.SURFACE1};
-                    color: {Theme.TEXT};
-                    border: none;
-                    border-radius: {Theme.CORNER_RADIUS};
-                    padding: 6px 16px;
-                    font-size: 12px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Theme.SURFACE2};
-                }}
-            """)
-            all_dup_paths = [p for (_, _), paths in dupes for p in paths]
-            select_all_btn.clicked.connect(
-                lambda: self._select_all_duplicates(all_dup_paths, dialog))
-            footer.addWidget(select_all_btn)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setCursor(Qt.PointingHandCursor)
+        cancel_btn.clicked.connect(confirm.reject)
 
-        close_btn = QPushButton("Close")
-        close_btn.setCursor(Qt.PointingHandCursor)
-        close_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {Theme.SURFACE1};
-                color: {Theme.TEXT};
-                border: none;
-                border-radius: {Theme.CORNER_RADIUS};
-                padding: 6px 16px;
-                font-size: 12px;
-            }}
-            QPushButton:hover {{
-                background-color: {Theme.SURFACE2};
-            }}
-        """)
-        close_btn.setFixedWidth(100)
-        close_btn.clicked.connect(dialog.accept)
-        footer.addWidget(close_btn)
+        confirm_btn = QPushButton("Delete Checked")
+        confirm_btn.setProperty("class", "destructive")
+        confirm_btn.setCursor(Qt.PointingHandCursor)
+        confirm_btn.clicked.connect(
+            lambda: self._execute_duplicate_delete(
+                list_widget, confirm, parent_dialog))
 
+        footer.addWidget(cancel_btn)
+        footer.addWidget(confirm_btn)
         layout.addLayout(footer)
 
-        dialog.adjustSize()
+        confirm.exec()
 
-        # Center on parent
-        parent_geo = self.geometry()
-        dialog.move(
-            parent_geo.x() + (parent_geo.width() - dialog.width()) // 2,
-            parent_geo.y() + (parent_geo.height() - dialog.height()) // 2,
-        )
-        dialog.exec()
+    def _execute_duplicate_delete(self, list_widget, confirm,
+                                   parent_dialog):
+        to_delete = []
+        for i in range(list_widget.count()):
+            item = list_widget.item(i)
+            if item.checkState() == Qt.CheckState.Checked:
+                to_delete.append(item.data(Qt.ItemDataRole.UserRole))
+
+        if not to_delete:
+            confirm.reject()
+            return
+
+        self._delete_files_by_path(to_delete)
+        confirm.accept()
+        parent_dialog.accept()
 
     def _select_all_duplicates(self, paths, dialog):
         self.file_list.clearSelection()
@@ -1494,12 +1515,15 @@ class MainWindow(QMainWindow):
                 item.setSelected(True)
         dialog.accept()
 
-    def _select_duplicate(self, path, dialog):
-        item = self.file_list.path_to_item.get(path)
-        if item:
+    def _on_dupe_tree_clicked(self, item, dialog):
+        path = item.data(0, Qt.ItemDataRole.UserRole)
+        if not path:
+            return
+        file_item = self.file_list.path_to_item.get(path)
+        if file_item:
             self.file_list.clearSelection()
-            item.setSelected(True)
-            self.file_list.scrollToItem(item)
+            file_item.setSelected(True)
+            self.file_list.scrollToItem(file_item)
         dialog.accept()
 
     def export_to_csv(self):
@@ -1814,7 +1838,7 @@ class MainWindow(QMainWindow):
                         border: none;
                     }}
                 """)
-                self._vol_label.setStyleSheet(f"color: {Theme.SUBTEXT0}; font-size: 13px; background: transparent; border: none;")
+                self._vol_label.setStyleSheet(f"color: {Theme.SUBTEXT1}; font-size: 13px; background: transparent; border: none;")
             
             if hasattr(self, 'toast_manager') and self.toast_manager.current_toast:
                 self.toast_manager.current_toast.close()
@@ -1852,9 +1876,12 @@ class MainWindow(QMainWindow):
 
 <b>Formats</b>: MP3, FLAC, OGG, M4A, WAV
 """
+        from PySide6.QtCore import Qt as _Qt
         from tagqt.ui.help import HelpDialog
         dialog = HelpDialog(self)
         dialog.setWindowTitle("Hints and Tips")
+        dialog.browser.setVerticalScrollBarPolicy(
+            _Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         dialog.set_content(hints_text)
         dialog.exec()
     
@@ -2304,7 +2331,7 @@ auto-tag from MusicBrainz, batch rename files — all in one place.</p>
             self.btn_play.setText('⏸')
             self.btn_play.setToolTip('Pause')
         else:
-            self.btn_play.setText('▶')
+            self.btn_play.setText('⏵')
             self.btn_play.setToolTip('Play')
         if state == 'stopped' and self.player.current_index >= len(self._build_play_queue()) - 1:
             self.now_playing_label.setText('')

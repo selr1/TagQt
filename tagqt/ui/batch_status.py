@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QTreeWidget, QTreeWidgetItem, 
-    QHeaderView, QProgressBar, QLabel, 
-    QDialogButtonBox
+    QHeaderView, QProgressBar, QLabel, QHBoxLayout,
+    QPushButton
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
@@ -27,11 +27,11 @@ class BatchStatusDialog(QDialog):
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        layout.setSpacing(15)
         
         # Header
         self.status_label = QLabel("Starting\u2026")
-        self.status_label.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {Theme.TEXT};")
+        self.status_label.setStyleSheet(f"font-size: 16px; font-weight: 600; color: {Theme.TEXT};")
         layout.addWidget(self.status_label)
         
         # Progress Bar
@@ -66,15 +66,15 @@ class BatchStatusDialog(QDialog):
         
         layout.addWidget(self.tree)
         
-        # Footer Buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Close)
-        buttons.rejected.connect(self.accept) # Close acts as accept/reject here
-        
-        self.close_btn = buttons.button(QDialogButtonBox.Close)
+        # Footer
+        footer = QHBoxLayout()
+        footer.addStretch()
+        self.close_btn = QPushButton("Close")
         self.close_btn.setCursor(Qt.PointingHandCursor)
-        self.close_btn.setText("Close")
-        
-        layout.addWidget(buttons)
+        self.close_btn.clicked.connect(self.accept)
+        self.close_btn.setFixedWidth(100)
+        footer.addWidget(self.close_btn)
+        layout.addLayout(footer)
         
         self.results = [] 
 

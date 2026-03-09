@@ -20,7 +20,7 @@ class SearchResultsDialog(QDialog):
         
         # Header
         header = QLabel(f"Search Results ({mode.capitalize()})")
-        header.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {Theme.ACCENT};")
+        header.setStyleSheet(f"font-size: 16px; font-weight: 600; color: {Theme.TEXT};")
         layout.addWidget(header)
         
         # Tree Widget

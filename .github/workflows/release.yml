@@ -45,13 +45,13 @@ jobs:
           $icons = @(
             "assets\logo.ico",
             "assets\logo.png",
-            "assets\logo_16.png",
-            "assets\logo_32.png",
-            "assets\logo_48.png",
-            "assets\logo_64.png",
-            "assets\logo_128.png",
-            "assets\logo_256.png",
-            "assets\logo_512.png",
+            "assets\icons\logo_16.png",
+            "assets\icons\logo_32.png",
+            "assets\icons\logo_48.png",
+            "assets\icons\logo_64.png",
+            "assets\icons\logo_128.png",
+            "assets\icons\logo_256.png",
+            "assets\icons\logo_512.png",
             "assets\logo.svg"
           )
           $missing = $false
@@ -262,15 +262,15 @@ jobs:
           for f in \
             assets/logo.ico \
             assets/logo.png \
-            assets/logo_16.png \
-            assets/logo_32.png \
-            assets/logo_48.png \
-            assets/logo_64.png \
-            assets/logo_128.png \
-            assets/logo_256.png \
-            assets/logo_512.png \
+            assets/icons/logo_16.png \
+            assets/icons/logo_32.png \
+            assets/icons/logo_48.png \
+            assets/icons/logo_64.png \
+            assets/icons/logo_128.png \
+            assets/icons/logo_256.png \
+            assets/icons/logo_512.png \
             assets/logo.svg \
-            assets/logo_icon.svg; do
+            assets/icons/logo_icon.svg; do
             if [ ! -f "$f" ]; then
               echo "MISSING: $f"
               exit 1
@@ -434,17 +434,17 @@ jobs:
           cp -r dist/TagQt/* TagQt.AppDir/usr/bin/
 
           # Root icon (required by AppImage spec — must match Icon= in .desktop)
-          cp assets/logo_256.png TagQt.AppDir/logo.png
-          cp assets/logo_256.png TagQt.AppDir/TagQt.png
+          cp assets/icons/logo_256.png TagQt.AppDir/logo.png
+          cp assets/icons/logo_256.png TagQt.AppDir/TagQt.png
 
           # Icon hierarchy for system integration
           for size in 16 32 48 64 128 256 512; do
             dir="TagQt.AppDir/usr/share/icons/hicolor/${size}x${size}/apps"
             mkdir -p "$dir"
-            cp "assets/logo_${size}.png" "$dir/logo.png"
+            cp "assets/icons/logo_${size}.png" "$dir/logo.png"
           done
           mkdir -p TagQt.AppDir/usr/share/icons/hicolor/scalable/apps
-          cp assets/logo_icon.svg TagQt.AppDir/usr/share/icons/hicolor/scalable/apps/logo.svg
+          cp assets/icons/logo_icon.svg TagQt.AppDir/usr/share/icons/hicolor/scalable/apps/logo.svg
 
           # Create .desktop file
           cat > TagQt.AppDir/TagQt.desktop << EOF

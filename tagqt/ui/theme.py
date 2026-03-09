@@ -203,7 +203,18 @@ class Theme:
                 font-size: 13px;
             }}
             QLabel {{
-                color: {Theme.TEXT};
+                color: {Theme.SUBTEXT0};
+            }}
+
+            /* ═══ Sidebar & Player Bar ═══════════════ */
+
+            QWidget#Sidebar {{
+                background-color: {Theme.MANTLE};
+                border-left: 1px solid {Theme.SURFACE0};
+            }}
+            QWidget#playerBar {{
+                background-color: {Theme.CRUST};
+                border-top: 1px solid {Theme.SURFACE1};
             }}
 
             /* ═══ Inputs ══════════════════════════════ */
@@ -219,7 +230,8 @@ class Theme:
                 font-size: 13px;
             }}
             QLineEdit:focus {{
-                border: 1px solid {Theme.MAUVE};
+                border: 1px solid {Theme.ACCENT};
+                background-color: {Theme.SURFACE0};
             }}
             QLineEdit:disabled {{
                 color: {Theme.OVERLAY1};
@@ -235,7 +247,8 @@ class Theme:
                 selection-color: {Theme.TEXT};
             }}
             QTextEdit:focus, QPlainTextEdit:focus {{
-                border: 1px solid {Theme.MAUVE};
+                border: 1px solid {Theme.ACCENT};
+                background-color: {Theme.SURFACE0};
             }}
 
             /* ═══ Buttons ═════════════════════════════ */
@@ -330,7 +343,8 @@ class Theme:
                 outline: none;
             }}
             QTreeWidget::item {{
-                padding: 8px 8px;
+                padding: 3px 6px;
+                min-height: 22px;
                 border-radius: 0px;
                 color: {Theme.TEXT};
             }}
@@ -494,16 +508,16 @@ class Theme:
 
             QProgressBar {{
                 background-color: {Theme.SURFACE0};
-                border: 1px solid {Theme.SURFACE1};
-                border-radius: 4px;
+                border: none;
+                border-radius: 3px;
                 text-align: center;
                 color: {Theme.SUBTEXT1};
                 height: 6px;
                 font-size: 11px;
             }}
             QProgressBar::chunk {{
-                background-color: {Theme.BLUE};
-                border-radius: 4px;
+                background-color: {Theme.ACCENT};
+                border-radius: 3px;
             }}
             QProgressDialog {{
                 background-color: {Theme.BASE};
@@ -688,7 +702,7 @@ class Theme:
             }}
             QLabel {{
                 background: transparent;
-                color: {Theme.LATTE_TEXT};
+                color: {Theme.LATTE_SUBTEXT0};
             }}
             QLabel#secondary {{
                 color: {Theme.LATTE_SUBTEXT1};
@@ -698,6 +712,7 @@ class Theme:
 
             QWidget#Sidebar {{
                 background-color: {Theme.LATTE_MANTLE};
+                border-left: 1px solid {Theme.LATTE_SURFACE0};
             }}
             QWidget#playerBar {{
                 background-color: {Theme.LATTE_MANTLE};
@@ -717,7 +732,8 @@ class Theme:
                 font-size: 13px;
             }}
             QLineEdit:focus {{
-                border: 1px solid {Theme.LATTE_MAUVE};
+                border: 1px solid {Theme.ACCENT};
+                background-color: {Theme.LATTE_SURFACE0};
             }}
             QLineEdit:disabled {{
                 color: {Theme.LATTE_OVERLAY1};
@@ -734,7 +750,8 @@ class Theme:
                 selection-color: {Theme.LATTE_TEXT};
             }}
             QTextEdit:focus, QPlainTextEdit:focus {{
-                border: 1px solid {Theme.LATTE_MAUVE};
+                border: 1px solid {Theme.ACCENT};
+                background-color: {Theme.LATTE_SURFACE0};
             }}
 
             /* ═══ Buttons ═════════════════════════════ */
@@ -830,7 +847,8 @@ class Theme:
                 outline: none;
             }}
             QTreeWidget::item {{
-                padding: 8px 8px;
+                padding: 3px 6px;
+                min-height: 22px;
                 border-radius: 0px;
                 color: {Theme.LATTE_TEXT};
             }}
@@ -997,16 +1015,16 @@ class Theme:
 
             QProgressBar {{
                 background-color: {Theme.LATTE_SURFACE0};
-                border: 1px solid {Theme.LATTE_SURFACE1};
-                border-radius: 4px;
+                border: none;
+                border-radius: 3px;
                 text-align: center;
                 color: {Theme.LATTE_SUBTEXT1};
                 height: 6px;
                 font-size: 11px;
             }}
             QProgressBar::chunk {{
-                background-color: {Theme.LATTE_BLUE};
-                border-radius: 4px;
+                background-color: {Theme.LATTE_MAUVE};
+                border-radius: 3px;
             }}
             QProgressDialog {{
                 background-color: {Theme.LATTE_BASE};

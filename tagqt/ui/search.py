@@ -42,7 +42,7 @@ class UnifiedSearchDialog(QDialog):
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        layout.setSpacing(15)
         
 
         input_group = QWidget()

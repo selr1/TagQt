@@ -34,7 +34,7 @@ def main():
     # Set application icon — load all sizes, Qt picks the best one
     icon = QIcon()
     for size in [16, 32, 48, 64, 128, 256, 512]:
-        p = get_asset(f'assets/logo_{size}.png')
+        p = get_asset(f'assets/icons/logo_{size}.png')
         if os.path.exists(p):
             icon.addFile(p)
 

@@ -49,7 +49,7 @@ class Sidebar(QWidget):
         layout.setSpacing(20)
         
         scroll.setWidget(content_widget)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         main_layout.addWidget(scroll)
 
         # Cover Art
@@ -299,7 +299,7 @@ class Sidebar(QWidget):
     def toggle_extended(self, checked):
         """Show or hide extended metadata fields."""
         self.extended_widget.setVisible(checked)
-        self.toggle_btn.setText("Hide fields ▲" if checked else "Show more fields ▸")
+        self.toggle_btn.setText("Hide fields ▾" if checked else "Show more fields ▸")
 
     def apply_theme(self):
         bg = Theme.LATTE_SURFACE1 if Theme._is_light else Theme.SURFACE0
