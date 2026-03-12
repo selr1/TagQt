@@ -490,7 +490,7 @@ jobs:
           cat > TagQt.AppDir/usr/share/metainfo/tagqt.appdata.xml << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <component type="desktop-application">
-            <id>io.github.selr1.tagqt</id>
+            <id>io.github.4626k.tagqt</id>
             <name>TagQt</name>
             <summary>A music metadata editor built with Python and Qt</summary>
             <metadata_license>MIT</metadata_license>
@@ -506,8 +506,8 @@ jobs:
               <release version="${{ steps.version.outputs.VERSION }}"
                        date="$(date -u +%Y-%m-%d)"/>
             </releases>
-            <url type="homepage">https://github.com/selr1/tagqt</url>
-            <url type="bugtracker">https://github.com/selr1/tagqt/issues</url>
+            <url type="homepage">https://github.com/4626k/tagqt</url>
+            <url type="bugtracker">https://github.com/4626k/tagqt/issues</url>
           </component>
           EOF
           sed -i 's/^          //' TagQt.AppDir/usr/share/metainfo/tagqt.appdata.xml

@@ -8,9 +8,9 @@
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square&labelColor=1e1e2e&color=f38ba8" alt="License: MIT"/></a>
-  <a href="https://github.com/selr1/tagqt"><img src="https://img.shields.io/badge/FOSS-100%25-success?style=flat-square&labelColor=1e1e2e&color=a6e3a1" alt="FOSS"/></a>
-  <a href="https://github.com/selr1/tagqt"><img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-green?style=flat-square&labelColor=1e1e2e&color=cba6f7" alt="Platform"/></a>
-  <a href="https://github.com/selr1/tagqt"><img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&labelColor=1e1e2e&color=89b4fa" alt="Python 3.10+"/></a>
+  <a href="https://github.com/4626k/tagqt"><img src="https://img.shields.io/badge/FOSS-100%25-success?style=flat-square&labelColor=1e1e2e&color=a6e3a1" alt="FOSS"/></a>
+  <a href="https://github.com/4626k/tagqt"><img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-green?style=flat-square&labelColor=1e1e2e&color=cba6f7" alt="Platform"/></a>
+  <a href="https://github.com/4626k/tagqt"><img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&labelColor=1e1e2e&color=89b4fa" alt="Python 3.10+"/></a>
 </p>
 
 ## Screenshot
@@ -51,14 +51,14 @@ You can drag and drop files or folders directly onto the window to load them.
 
 ### From a Release
 
-Download the latest build from [Releases](https://github.com/selr1/tagqt/releases). On Windows, run the installer `.exe`. On Linux, download the AppImage, make it executable with `chmod +x`, and run it.
+Download the latest build from [Releases](https://github.com/4626k/tagqt/releases). On Windows, run the installer `.exe`. On Linux, download the AppImage, make it executable with `chmod +x`, and run it.
 
 ### From Source
 
 Requires Python 3.10 or later.
 
 ```bash
-git clone https://github.com/selr1/tagqt.git
+git clone https://github.com/4626k/tagqt.git
 cd tagqt
 pip install -r requirements.txt
 python main.py
